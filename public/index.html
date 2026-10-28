@@ -430,6 +430,17 @@
   }
   .convo-topic { margin-top: 0.3rem; font-size: 0.86rem; }
 
+  .cfg-row { display: flex; gap: 0.4rem; margin-bottom: 0.4rem; align-items: stretch; }
+  .cfg-row input, .cfg-row select, .cfg-days input {
+    border: 1px solid var(--border); border-radius: 8px; padding: 0.5rem 0.65rem; background: var(--bg); color: var(--ink); font-size: 16px;
+  }
+  .cfg-row input { flex: 1 1 0; width: auto; min-width: 0; }
+  .cfg-row select { flex: 0 1 auto; width: auto; max-width: 48%; }
+  .cfg-row .secondary-btn { flex: 0 0 auto; width: auto; margin: 0; padding: 0 0.8rem; }
+  [data-add] { margin-top: 0.2rem; }
+  .cfg-days { display: grid; grid-template-columns: repeat(5, minmax(0, 1fr)); gap: 0.4rem; }
+  .cfg-days label { display: flex; flex-direction: column; font-size: 0.72rem; color: var(--ink-muted); gap: 0.2rem; min-width: 0; }
+  .cfg-days input { width: 100%; min-width: 0; padding: 0.45rem 0.4rem; }
   .section-title { font-size: 0.72rem; letter-spacing: 0.06em; text-transform: uppercase; color: var(--ink-muted); font-weight: 700; margin: 1.1rem 0 0.4rem; }
 
   .sync-note { font-size: 0.72rem; color: var(--ink-muted); text-align: center; padding: 0.4rem 0; }
@@ -608,6 +619,7 @@
   <main id="biomePanel"></main>
   <p class="sync-note" id="syncNote" hidden></p>
   <p class="sync-note">
+    <button class="signout-btn" id="configBtn" type="button">Groups &amp; places</button>
     <button class="signout-btn" id="shortcutBtn" type="button">iPhone call shortcut</button>
     <button class="signout-btn" id="signOutBtn" type="button">Sign out of this device</button>
   </p>
@@ -626,6 +638,7 @@
 </div>
 
 <div id="modalRoot"></div>
+<script src="setup.js"></script>
 
 <script>
 (function () {
@@ -979,6 +992,46 @@
 
   var REL_SPECIES = { Friends: wildflowerSpecies, Family: fruitShrubSpecies, Professional: topiarySpecies, Other: fernSpecies };
   var LOC_SPECIES = { Coast: succulentSpecies, City: geraniumBoxSpecies, Forest: mossFernSpecies, Other: grassTuftSpecies };
+
+  // ---------- your groups and places ----------
+  // Start from public/setup.js (from `npm run setup`); anything saved in the app
+  // ("Groups & places") comes from the server and wins. "Other" always stays last.
+  var SCENES = {
+    rel: { friends: ["biome-friends", "#d9a53f", wildflowerSpecies], family: ["biome-family", "#a9662f", fruitShrubSpecies],
+      professional: ["biome-professional", "#4f7c72", topiarySpecies], plain: ["biome-other-rel", "#3f7d4a", fernSpecies] },
+    loc: { coast: ["biome-coast", "#c98a4c", succulentSpecies], city: ["biome-city", "#5b6f8a", geraniumBoxSpecies],
+      forest: ["biome-forest", "#4d6b57", mossFernSpecies], plain: ["biome-other-loc", "#3f7d4a", grassTuftSpecies] }
+  };
+  var SCENE_LABEL = { friends: "Wildflower meadow", family: "Orchard", professional: "Formal garden", coast: "Coast",
+    city: "Rooftop", forest: "Forest", plain: "Plain garden" };
+  function fillKind(list, seed, cls, accent, species, scenes) {
+    seed.length = 0;
+    [cls, accent, species].forEach(function (m) { Object.keys(m).forEach(function (k) { delete m[k]; }); });
+    list.concat([{ name: "Other", scene: "plain" }]).forEach(function (t) {
+      var name = String(t && t.name || "").trim();
+      if (!name || seed.indexOf(name) !== -1) return;
+      var sc = scenes[t.scene] || scenes.plain;
+      seed.push(name); cls[name] = sc[0]; accent[name] = sc[1]; species[name] = sc[2];
+    });
+  }
+  function applyGardenConfig(cfg) {
+    if (!cfg) return;
+    if (Array.isArray(cfg.groups) && cfg.groups.length) fillKind(cfg.groups, REL_SEED, REL_BIOME_CLASS, REL_ACCENT, REL_SPECIES, SCENES.rel);
+    if (Array.isArray(cfg.locations) && cfg.locations.length) fillKind(cfg.locations, LOC_SEED, LOC_BIOME_CLASS, LOC_ACCENT, LOC_SPECIES, SCENES.loc);
+    if (cfg.idealDays) for (var k = 1; k <= 5; k++) if (Number(cfg.idealDays[k]) > 0) IDEAL_DAYS[k] = Number(cfg.idealDays[k]);
+  }
+  function sceneOf(cls, scenes) {
+    for (var s in scenes) if (scenes[s][0] === cls) return s;
+    return "plain";
+  }
+  function currentGardenConfig() {
+    var pick = function (seed, cls, scenes) {
+      return seed.filter(function (n) { return n !== "Other"; }).map(function (n) { return { name: n, scene: sceneOf(cls[n], scenes) }; });
+    };
+    return { groups: pick(REL_SEED, REL_BIOME_CLASS, SCENES.rel), locations: pick(LOC_SEED, LOC_BIOME_CLASS, SCENES.loc),
+      idealDays: { 1: IDEAL_DAYS[1], 2: IDEAL_DAYS[2], 3: IDEAL_DAYS[3], 4: IDEAL_DAYS[4], 5: IDEAL_DAYS[5] } };
+  }
+  applyGardenConfig(window.GARDEN_SETUP);
 
   // A plant's two named tags (first relationship tag + location, defaulting
   // to "Other" for either) — what both plantSVG and the marker tag key off.
@@ -1504,7 +1557,9 @@
     refresh();
   }
   function refresh() {
-    return api("GET", "/api/plants").then(function (plants) {
+    return Promise.all([api("GET", "/api/plants"), api("GET", "/api/garden-config")]).then(function (r) {
+      var plants = r[0];
+      applyGardenConfig(r[1]);
       state.plants = plants;
       saveLocal();
       setSyncNote(null);
@@ -1572,6 +1627,62 @@
       });
     });
   }
+  // ---------- groups & places editor ----------
+  function openConfigModal() {
+    var cfg = currentGardenConfig();
+    var rowHtml = function (kind, t) {
+      var opts = Object.keys(SCENES[kind]).map(function (s) {
+        return '<option value="' + s + '"' + (s === t.scene ? " selected" : "") + ">" + SCENE_LABEL[s] + "</option>";
+      }).join("");
+      return '<div class="cfg-row" data-kind="' + kind + '"><input type="text" maxlength="24" value="' + escapeHtml(t.name) +
+        '" aria-label="Name"><select aria-label="Scenery">' + opts + '</select><button type="button" class="secondary-btn cfg-del" aria-label="Remove">✕</button></div>';
+    };
+    var html =
+      '<button class="modal-close" data-close>✕</button>' +
+      '<h2 style="font-style:italic;margin-bottom:0.6rem;">Groups &amp; places</h2>' +
+      '<p class="stat-line">The beds your garden is grouped into. Each gets its own scenery and plant. "Other" is always there. Renaming one here doesn\'t move plants already tagged with the old name.</p>' +
+      '<div class="section-title">Relationship groups</div><div id="cfg-rel">' + cfg.groups.map(function (t) { return rowHtml("rel", t); }).join("") + '</div>' +
+      '<button type="button" class="secondary-btn" data-add="rel">+ Add group</button>' +
+      '<div class="section-title">Places</div><div id="cfg-loc">' + cfg.locations.map(function (t) { return rowHtml("loc", t); }).join("") + '</div>' +
+      '<button type="button" class="secondary-btn" data-add="loc">+ Add place</button>' +
+      '<div class="section-title">Days between talks, by closeness</div><div class="cfg-days">' +
+      [1, 2, 3, 4, 5].map(function (k) {
+        return '<label>' + LEVEL_NAME[k] + '<input type="number" min="1" max="365" data-level="' + k + '" value="' + cfg.idealDays[k] + '"></label>';
+      }).join("") + '</div>' +
+      '<p class="gate-msg" id="cfg-msg" role="alert"></p>' +
+      '<button class="primary-btn" id="cfg-save">Save</button>';
+    var scrim = openScrim(html, { center: true });
+    scrim.querySelector("[data-close]").addEventListener("click", closeScrim);
+    scrim.addEventListener("click", function (e) {
+      var del = e.target.closest(".cfg-del");
+      if (del) del.parentNode.remove();
+      var add = e.target.closest("[data-add]");
+      if (add) {
+        var kind = add.getAttribute("data-add");
+        scrim.querySelector("#cfg-" + kind).insertAdjacentHTML("beforeend", rowHtml(kind, { name: "", scene: "plain" }));
+        scrim.querySelector("#cfg-" + kind + " .cfg-row:last-child input").focus();
+      }
+    });
+    scrim.querySelector("#cfg-save").addEventListener("click", function () {
+      var read = function (kind) {
+        return Array.prototype.map.call(scrim.querySelectorAll("#cfg-" + kind + " .cfg-row"), function (row) {
+          return { name: row.querySelector("input").value.trim(), scene: row.querySelector("select").value };
+        }).filter(function (t) { return t.name; });
+      };
+      var days = {};
+      Array.prototype.forEach.call(scrim.querySelectorAll("[data-level]"), function (i) { days[i.getAttribute("data-level")] = Number(i.value); });
+      var body = { groups: read("rel"), locations: read("loc"), idealDays: days };
+      api("PUT", "/api/garden-config", body).then(function (saved) {
+        applyGardenConfig(saved);
+        closeScrim();
+        render();
+      }).catch(function (e) {
+        if (e && e.signedOut) return showGate("");
+        scrim.querySelector("#cfg-msg").textContent = "Couldn't save. Each list needs at least one name, and days are 1 to 365.";
+      });
+    });
+  }
+
   function openShortcutModal() {
     var base = location.origin;
     var html =
@@ -1614,6 +1725,7 @@
     });
   }
   document.getElementById("shortcutBtn").addEventListener("click", openShortcutModal);
+  document.getElementById("configBtn").addEventListener("click", openConfigModal);
 
   document.getElementById("signOutBtn").addEventListener("click", function () {
     fetch("/api/logout", { method: "POST", credentials: "same-origin" })

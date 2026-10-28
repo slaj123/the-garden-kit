@@ -17,6 +17,8 @@ const COOKIE = "garden_session";
 const SESSION_DAYS = 365;
 const IP_LIMIT = 5, IP_WINDOW_MIN = 15;
 const GLOBAL_LIMIT = 30, GLOBAL_WINDOW_MIN = 60;
+import "../public/setup.js"; // sets globalThis.GARDEN_SETUP
+
 const MIN_PASSCODE = 12;
 
 export default {
@@ -31,6 +33,7 @@ export default {
       if (url.pathname.startsWith("/api/shortcut/")) return await shortcutRoute(request, env, url);
       if (!(await validSession(request, env))) return json({ error: "signed out" }, 401);
       if (url.pathname === "/api/shortcut-key") return await shortcutKeyRoute(request, env);
+      if (url.pathname === "/api/garden-config") return await configRoute(request, env);
       return await route(request, env, url);
     } catch (e) {
       console.error(e);
@@ -111,7 +114,8 @@ async function route(request, env, url) {
 // Making a new key kills the old one. Keys are 256-bit random, so guessing
 // is not a concern and these routes skip the login lockout.
 
-const IDEAL_DAYS = { 1: 60, 2: 30, 3: 14, 4: 7, 5: 3 }; // mirrors the page
+// Days between talks by closeness: your saved config, else public/setup.js, else these.
+const DEFAULT_DAYS = { 1: 60, 2: 30, 3: 14, 4: 7, 5: 3 };
 
 async function shortcutRoute(request, env, url) {
   const row = await env.DB.prepare("SELECT value FROM settings WHERE name = 'shortcut_key_hash'").first();
@@ -122,6 +126,7 @@ async function shortcutRoute(request, env, url) {
 
   const plants = await loadPlants(env);
   const labelled = labelPlants(plants);
+  const IDEAL_DAYS = (await loadConfig(env)).idealDays;
 
   if (url.pathname === "/api/shortcut/people" && request.method === "GET") {
     // Plain text, one name per line, most overdue first: Shortcuts splits
@@ -155,6 +160,51 @@ async function shortcutRoute(request, env, url) {
   }
 
   return text("Not found.", 404);
+}
+
+// ---------- groups, places and rhythm ----------
+const SCENES = { groups: ["friends", "family", "professional", "plain"], locations: ["coast", "city", "forest", "plain"] };
+
+function cleanConfig(input) {
+  const out = {};
+  for (const kind of ["groups", "locations"]) {
+    const list = Array.isArray(input?.[kind]) ? input[kind] : [];
+    const seen = new Set();
+    out[kind] = list.map((t) => ({
+      name: typeof t?.name === "string" ? t.name.trim().replace(/\s+/g, " ").slice(0, 24) : "",
+      scene: SCENES[kind].includes(t?.scene) ? t.scene : "plain",
+    })).filter((t) => t.name && t.name !== "Other" && !seen.has(t.name) && seen.add(t.name)).slice(0, 12);
+    if (!out[kind].length) return null;
+  }
+  out.idealDays = {};
+  for (let k = 1; k <= 5; k++) {
+    const n = Math.round(Number(input?.idealDays?.[k]));
+    if (!(n >= 1 && n <= 365)) return null;
+    out.idealDays[k] = n;
+  }
+  return out;
+}
+
+async function loadConfig(env) {
+  const row = await env.DB.prepare("SELECT value FROM settings WHERE name = 'garden_config'").first();
+  const setup = globalThis.GARDEN_SETUP || {};
+  const saved = row ? JSON.parse(row.value) : {};
+  return { groups: saved.groups || setup.groups || [], locations: saved.locations || setup.locations || [],
+    idealDays: saved.idealDays || setup.idealDays || DEFAULT_DAYS };
+}
+
+async function configRoute(request, env) {
+  if (request.method === "GET") {
+    const row = await env.DB.prepare("SELECT value FROM settings WHERE name = 'garden_config'").first();
+    return json(row ? JSON.parse(row.value) : null); // null = use public/setup.js
+  }
+  if (request.method === "PUT") {
+    const cfg = cleanConfig(await readBody(request));
+    if (!cfg) return json({ error: "Each list needs at least one name, and days must be 1 to 365." }, 400);
+    await env.DB.prepare("INSERT OR REPLACE INTO settings (name, value) VALUES ('garden_config', ?)").bind(JSON.stringify(cfg)).run();
+    return json(cfg);
+  }
+  return json({ error: "method not allowed" }, 405);
 }
 
 async function shortcutKeyRoute(request, env) {

@@ -4,8 +4,8 @@ A personal contact tracker where every person you want to stay close to is a pla
 
 This is a **setup kit**: the full app, with no data in it. You deploy your own copy, so your contacts live only in your own database.
 
-- **One plant per person.** Each has a closeness level from 1 to 5, which sets how often you'd like to talk: every 60, 30, 14, 7 or 3 days.
-- **Two ways to see your garden.** Group by relationship (Friends, Family, Professional, Other) or by location (Coast, City, Forest, Other). Each location has its own scenery and plant species. You can add your own tags.
+- **One plant per person.** Each has a closeness level from 1 to 5, which sets how often you'd like to talk: by default every 60, 30, 14, 7 or 3 days, and you can change that.
+- **Two ways to see your garden.** Group by relationship or by location, using the groups and places you choose in setup. Each one gets its own scenery and plant species.
 - **Log conversations.** Record when and how you talked, and the plant perks up.
 - **iPhone Shortcut.** An optional "Log a call" Shortcut lists people most-overdue first and logs a call in two taps.
 - **Locked.** One passcode protects the whole app. A correct passcode signs the device in for a year. Five wrong tries from one IP locks that IP out for 15 minutes.
@@ -25,23 +25,25 @@ cd the-garden-kit
 npm install
 ```
 
-## 2. Run it locally
-
-Create a file named `.dev.vars` in the project folder (it is git-ignored):
-
-```
-GARDEN_PASSCODE=local-test-passcode
-SESSION_SECRET=any-random-string-at-least-32-characters-long
-```
-
-Create the local database and start the app:
+## 2. Make it yours
 
 ```bash
-npx wrangler d1 migrations apply the-garden --local
+npm run setup
+```
+
+It asks how you group the people in your life (for example Friends, Family, Work) and where they live (cities or regions), and gives each one a scenery. It also asks whether to change how often you want to talk to people at each closeness level. Your answers go into `setup.json` (git-ignored) and `public/setup.js`, which the app starts from. Only group and place names go there, never people.
+
+If you say yes to local testing, it also creates `.dev.vars` with a random local passcode and a local database. Then:
+
+```bash
 npm run dev
 ```
 
-Open http://localhost:8787, enter your local passcode, and plant someone.
+Open http://localhost:8787, enter the passcode from `.dev.vars`, and plant someone.
+
+**Change it later:** tap **Groups & places** at the bottom of the page. Add, rename or remove groups and places, change their scenery, or change the rhythm. That's saved in your database, so there's no redeploy.
+
+**Set up with Claude Code:** open this folder in [Claude Code](https://claude.com/claude-code) and type `/setup`. It asks the same questions in conversation, applies them, and walks you through putting it online.
 
 ## 3. Put it online
 
@@ -94,8 +96,7 @@ iOS doesn't let Shortcuts read your call history, so this Shortcut asks who you 
 
 ## Changing things later
 
-- **Your own locations or groups:** edit `REL_SEED` and `LOC_SEED` near the top of the script in `public/index.html`. New tags get a plain green garden and a generic shrub. To give one its own scenery, add it to `LOC_BIOME_CLASS` and `LOC_SPECIES`.
-- **Contact rhythm:** the days per closeness level are in `IDEAL_DAYS`, in both `public/index.html` and `src/worker.js`. Keep the two the same.
+- **Groups, places, rhythm:** **Groups & places** in the app, or rerun `npm run setup`.
 - **New icons:** `npm run icons` redraws them.
 - **Database changes:** add a file in `migrations/`, then run `npx wrangler d1 migrations apply the-garden --remote`.
 - **Change the passcode:** run `npx wrangler secret put GARDEN_PASSCODE`. This signs out every device.
