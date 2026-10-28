@@ -1,0 +1,13 @@
+{
+  "name": "the-garden",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "dev": "wrangler dev",
+    "deploy": "wrangler deploy",
+    "icons": "node scripts/make-icons.mjs"
+  },
+  "devDependencies": {
+    "wrangler": "^4.147.0"
+  }
+}

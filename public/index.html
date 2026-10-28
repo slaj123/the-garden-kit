@@ -1,0 +1,1689 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<title>The Garden</title>
+<meta name="description" content="A living map of who you talk to.">
+<meta name="theme-color" content="#f2f4ea" media="(prefers-color-scheme: light)">
+<meta name="theme-color" content="#131a12" media="(prefers-color-scheme: dark)">
+<link rel="manifest" href="/manifest.webmanifest">
+<link rel="icon" href="/icon.svg" type="image/svg+xml">
+<link rel="apple-touch-icon" href="/apple-touch-icon.png">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-title" content="Garden">
+<meta name="apple-mobile-web-app-status-bar-style" content="default">
+<style>
+  :root {
+    --bg: #f2f4ea;
+    --surface: #ffffff;
+    --surface-alt: #e7ecdc;
+    --ink: #1f2b1e;
+    --ink-muted: #5c6b52;
+    --border: #d5ddc4;
+    --leaf: #3f7d4a;
+    --leaf-deep: #2b5c35;
+    --bloom: #c9527c;
+    --soil: #8a6a4a;
+    --warn: #c97c3d;
+    --dead: #8a7a68;
+    --shadow: 0 1px 2px rgba(31,43,30,0.06), 0 8px 20px -8px rgba(31,43,30,0.18);
+  }
+  @media (prefers-color-scheme: dark) {
+    :root:not([data-theme="light"]) {
+      --bg: #131a12;
+      --surface: #1b2419;
+      --surface-alt: #22301f;
+      --ink: #eef1e6;
+      --ink-muted: #a7b39a;
+      --border: #33402e;
+      --leaf: #6fbf73;
+      --leaf-deep: #4a8f53;
+      --bloom: #e389a8;
+      --soil: #b98a5e;
+      --warn: #e2a35c;
+      --dead: #877c6a;
+      --shadow: 0 1px 2px rgba(0,0,0,0.3), 0 10px 24px -10px rgba(0,0,0,0.6);
+    }
+  }
+  :root[data-theme="dark"] {
+    --bg: #131a12;
+    --surface: #1b2419;
+    --surface-alt: #22301f;
+    --ink: #eef1e6;
+    --ink-muted: #a7b39a;
+    --border: #33402e;
+    --leaf: #6fbf73;
+    --leaf-deep: #4a8f53;
+    --bloom: #e389a8;
+    --soil: #b98a5e;
+    --warn: #e2a35c;
+    --dead: #877c6a;
+    --shadow: 0 1px 2px rgba(0,0,0,0.3), 0 10px 24px -10px rgba(0,0,0,0.6);
+  }
+
+  * { box-sizing: border-box; }
+  html, body { height: 100%; }
+  body {
+    margin: 0;
+    background: var(--bg);
+    color: var(--ink);
+    font-family: "Work Sans", -apple-system, system-ui, sans-serif;
+    font-size: 15px;
+    line-height: 1.5;
+  }
+  h1, h2, h3, .display {
+    font-family: "Cormorant Garamond", Georgia, serif;
+    font-weight: 600;
+    text-wrap: balance;
+    margin: 0;
+  }
+  .mono {
+    font-family: "Space Mono", ui-monospace, monospace;
+    font-variant-numeric: tabular-nums;
+  }
+  button { font-family: inherit; cursor: pointer; }
+  input, select, textarea { font-family: inherit; font-size: inherit; }
+  [hidden] { display: none !important; }
+  :focus-visible { outline: 2px solid var(--leaf-deep); outline-offset: 2px; }
+
+  .app {
+    max-width: 1080px;
+    margin: 0 auto;
+    padding: 0 16px 4rem;
+  }
+
+  /* ---- Header ---- */
+  header.top {
+    position: sticky;
+    top: env(safe-area-inset-top, 0px);
+    z-index: 20;
+    background: linear-gradient(var(--bg) 88%, transparent);
+    padding: 1.25rem 0 0.75rem;
+  }
+  .wordmark {
+    display: flex;
+    align-items: baseline;
+    gap: 0.55rem;
+    margin-bottom: 0.9rem;
+  }
+  .wordmark h1 { font-size: 1.7rem; font-style: italic; color: var(--leaf-deep); }
+  .wordmark .sub { color: var(--ink-muted); font-size: 0.78rem; letter-spacing: 0.04em; }
+
+  .controls-row {
+    display: flex;
+    align-items: center;
+    gap: 0.6rem;
+    flex-wrap: wrap;
+  }
+  .segmented {
+    display: inline-flex;
+    background: var(--surface-alt);
+    border-radius: 999px;
+    padding: 3px;
+    gap: 2px;
+  }
+  .segmented button {
+    border: none;
+    background: transparent;
+    color: var(--ink-muted);
+    font-weight: 600;
+    font-size: 0.82rem;
+    padding: 0.45rem 0.95rem;
+    border-radius: 999px;
+    transition: background 0.15s, color 0.15s;
+  }
+  .segmented button.active {
+    background: var(--surface);
+    color: var(--leaf-deep);
+    box-shadow: var(--shadow);
+  }
+  .search-wrap {
+    flex: 1 1 160px;
+    min-width: 120px;
+    position: relative;
+  }
+  .search-wrap input {
+    width: 100%;
+    padding: 0.5rem 0.8rem;
+    border-radius: 999px;
+    border: 1px solid var(--border);
+    background: var(--surface);
+    color: var(--ink);
+  }
+  .add-btn {
+    border: none;
+    background: var(--leaf);
+    color: #fff;
+    font-weight: 600;
+    font-size: 0.85rem;
+    padding: 0.55rem 1.1rem;
+    border-radius: 999px;
+    box-shadow: var(--shadow);
+    white-space: nowrap;
+  }
+  .add-btn:hover { background: var(--leaf-deep); }
+
+  /* ---- Tabs ---- */
+  .tab-strip {
+    display: flex;
+    gap: 0.5rem;
+    overflow-x: auto;
+    padding: 1rem 0 0.25rem;
+    scrollbar-width: thin;
+  }
+  .tab-chip {
+    flex: 0 0 auto;
+    border: 1px solid var(--border);
+    background: var(--surface);
+    color: var(--ink-muted);
+    padding: 0.4rem 0.85rem;
+    border-radius: 10px;
+    font-size: 0.82rem;
+    font-weight: 600;
+    display: flex;
+    align-items: center;
+    gap: 0.4rem;
+  }
+  .tab-chip .count { color: var(--ink-muted); font-weight: 400; font-size: 0.72rem; }
+  .tab-chip.active {
+    color: #fff;
+    border-color: transparent;
+  }
+
+  /* ---- Biome panel ---- */
+  .biome {
+    border-radius: 22px;
+    padding: 1.5rem 1.25rem 1.75rem;
+    margin-top: 0.25rem;
+    position: relative;
+    overflow: hidden;
+    min-height: 260px;
+  }
+  .biome .biome-label {
+    font-size: 0.7rem;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+    color: rgba(255,255,255,0.85);
+    font-weight: 600;
+    margin-bottom: 1rem;
+    display: inline-block;
+    position: relative;
+    z-index: 1;
+  }
+  .biome-deco {
+    position: absolute;
+    inset: 0;
+    width: 100%;
+    height: 100%;
+    z-index: 0;
+    pointer-events: none;
+  }
+  .empty-bed {
+    position: relative;
+    z-index: 1;
+    color: rgba(255,255,255,0.9);
+    font-size: 0.9rem;
+    padding: 2rem 0;
+    text-align: center;
+  }
+
+  /* One or more planter boxes stacked down the bed — "rows" of a garden. */
+  .garden-beds {
+    position: relative;
+    z-index: 1;
+    display: flex;
+    flex-direction: column;
+    gap: 1.1rem;
+  }
+  .planter-box {
+    background: linear-gradient(180deg, #5a3f28 0%, #5a3f28 58%, #6b4f34 58%, #6b4f34 100%);
+    border: 1px solid rgba(0,0,0,0.25);
+    border-radius: 10px;
+    box-shadow: 0 8px 16px -8px rgba(0,0,0,0.45), inset 0 2px 0 rgba(255,255,255,0.12);
+    display: flex;
+    flex-wrap: wrap;
+    align-items: flex-end;
+    gap: 1.6rem;
+    padding: 1.3rem 1.4rem 0.6rem;
+  }
+  .plant-stand {
+    border: none;
+    background: none;
+    padding: 0;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    cursor: pointer;
+    flex: 0 0 auto;
+  }
+  .plant-stand svg { width: 118px; height: auto; overflow: visible; }
+  .marker-tag {
+    margin-top: -0.1rem;
+    background: #f3ead9;
+    color: #3a2b1a;
+    padding: 0.2rem 0.55rem;
+    border-radius: 3px;
+    transform: rotate(-2.5deg);
+    box-shadow: 0 2px 4px rgba(0,0,0,0.3);
+    max-width: 108px;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+  }
+  .marker-name {
+    font-family: "Cormorant Garamond", Georgia, serif;
+    font-style: italic;
+    font-weight: 600;
+    font-size: 0.8rem;
+    line-height: 1.2;
+    white-space: nowrap;
+    max-width: 100%;
+    overflow: hidden;
+    text-overflow: ellipsis;
+  }
+  .marker-sub {
+    font-family: "Space Mono", ui-monospace, monospace;
+    font-size: 0.56rem;
+    text-transform: uppercase;
+    letter-spacing: 0.03em;
+    color: #6b5a45;
+    white-space: nowrap;
+    max-width: 100%;
+    overflow: hidden;
+    text-overflow: ellipsis;
+  }
+  .health-dot {
+    width: 6px;
+    height: 6px;
+    border-radius: 50%;
+    display: inline-block;
+    margin-right: 0.3rem;
+    vertical-align: middle;
+  }
+
+  /* biome background themes */
+  .biome-friends { background: radial-gradient(circle at 20% 20%, #ffe8a3 0%, #eec659 32%, #d9a53f 100%); }
+  .biome-family { background: linear-gradient(160deg, #f3ddb0 0%, #d99a5b 55%, #a9662f 100%); }
+  .biome-professional { background: linear-gradient(160deg, #cfe3df 0%, #8fb8ae 55%, #4f7c72 100%); }
+  .biome-other-rel, .biome-generic { background: linear-gradient(160deg, #47613f 0%, #2f4a2a 60%, #1c3018 100%); }
+  .biome-coast { background: linear-gradient(160deg, #ffe9c7 0%, #f3b46b 45%, #7fa5a0 100%); }
+  .biome-city { background: linear-gradient(160deg, #7a8aa0 0%, #4c5b74 55%, #262f42 100%); }
+  .biome-forest { background: linear-gradient(160deg, #a9bcae 0%, #6f8f79 55%, #3c5545 100%); }
+  .biome-other-loc { background: linear-gradient(160deg, #47613f 0%, #2f4a2a 60%, #1c3018 100%); }
+  .biome-all { background: linear-gradient(160deg, #eef1c9 0%, #a9c98a 45%, #4f7c5a 100%); }
+
+  /* ---- Plant health states applied to svg group ---- */
+  /* filter only — rotation + level-scale are combined per-instance via inline style */
+  .plant-thriving { filter: saturate(1.15) brightness(1.05); }
+  .plant-healthy { filter: saturate(1) brightness(1); }
+  .plant-wilting { filter: saturate(0.75) brightness(0.97); }
+  .plant-dying { filter: saturate(0.4) brightness(0.85) sepia(0.25); }
+  .plant-dead { filter: grayscale(0.85) brightness(0.7) sepia(0.15); }
+
+  /* ---- Drawer / modals ---- */
+  .scrim {
+    position: fixed; inset: 0;
+    background: rgba(20,26,18,0.45);
+    z-index: 40;
+    display: flex;
+    justify-content: flex-end;
+  }
+  .scrim.center { justify-content: center; align-items: center; padding: 16px; }
+  .drawer, .modal {
+    background: var(--surface);
+    color: var(--ink);
+    max-width: 420px;
+    width: 100%;
+    box-shadow: var(--shadow);
+    overflow-y: auto;
+  }
+  .drawer { height: 100%; padding: 1.5rem 1.25rem calc(2rem + env(safe-area-inset-bottom, 0px)); }
+  .modal { border-radius: 18px; padding: 1.5rem 1.25rem; max-height: 90vh; }
+  .drawer-close, .modal-close {
+    border: none; background: var(--surface-alt); color: var(--ink);
+    width: 30px; height: 30px; border-radius: 50%; font-size: 1rem;
+    display: flex; align-items: center; justify-content: center;
+    float: right;
+  }
+  .field { display: flex; flex-direction: column; gap: 0.3rem; margin-bottom: 0.9rem; }
+  .field label { font-size: 0.75rem; font-weight: 600; color: var(--ink-muted); text-transform: uppercase; letter-spacing: 0.03em; }
+  .field input[type=text], .field input[type=number], .field input[type=date],
+  .field select, .field textarea {
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    padding: 0.5rem 0.65rem;
+    background: var(--bg);
+    color: var(--ink);
+  }
+  .field textarea { resize: vertical; min-height: 3rem; }
+  .chip-row { display: flex; flex-wrap: wrap; gap: 0.4rem; }
+  .chip-toggle {
+    border: 1px solid var(--border);
+    background: var(--surface-alt);
+    color: var(--ink-muted);
+    padding: 0.35rem 0.7rem;
+    border-radius: 999px;
+    font-size: 0.78rem;
+    font-weight: 600;
+  }
+  .chip-toggle.on { background: var(--leaf); border-color: var(--leaf); color: #fff; }
+  .chip-add-input {
+    border: 1px dashed var(--border);
+    background: transparent;
+    color: var(--ink-muted);
+    padding: 0.35rem 0.7rem;
+    border-radius: 999px;
+    font-size: 0.78rem;
+    width: 90px;
+  }
+  .level-row { display: flex; gap: 0.4rem; }
+  .level-btn {
+    flex: 1;
+    border: 1px solid var(--border);
+    background: var(--surface-alt);
+    color: var(--ink-muted);
+    border-radius: 10px;
+    padding: 0.5rem 0.2rem;
+    font-weight: 700;
+    font-size: 0.9rem;
+  }
+  .level-btn.on { background: var(--bloom); border-color: var(--bloom); color: #fff; }
+  .primary-btn, .danger-btn, .secondary-btn {
+    border: none; border-radius: 10px; padding: 0.65rem 1rem;
+    font-weight: 600; font-size: 0.88rem; width: 100%;
+  }
+  .primary-btn { background: var(--leaf); color: #fff; margin-top: 0.4rem; }
+  .primary-btn:hover { background: var(--leaf-deep); }
+  .danger-btn { background: transparent; color: #b3453f; border: 1px solid #b3453f; }
+  .secondary-btn { background: var(--surface-alt); color: var(--ink); }
+  .btn-row { display: flex; gap: 0.5rem; margin-top: 0.6rem; }
+  .btn-row > * { flex: 1; }
+
+  .detail-header { display: flex; gap: 0.9rem; align-items: center; margin-bottom: 1rem; clear: both; }
+  .detail-header svg { width: 110px; height: auto; flex: 0 0 auto; overflow: visible; }
+  .detail-header h2 { font-size: 1.4rem; font-style: italic; }
+  .health-bar-wrap { background: var(--surface-alt); border-radius: 999px; height: 8px; overflow: hidden; margin: 0.35rem 0; }
+  .health-bar-fill { height: 100%; border-radius: 999px; }
+  .stat-line { font-size: 0.78rem; color: var(--ink-muted); }
+
+  .convo-list { display: flex; flex-direction: column; gap: 0.6rem; margin-top: 0.5rem; }
+  .convo-item {
+    border: 1px solid var(--border);
+    border-radius: 10px;
+    padding: 0.55rem 0.7rem;
+    background: var(--surface-alt);
+  }
+  .convo-top { display: flex; justify-content: space-between; gap: 0.5rem; font-size: 0.75rem; color: var(--ink-muted); }
+  .convo-badge {
+    display: inline-block;
+    background: var(--leaf);
+    color: #fff;
+    font-size: 0.65rem;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.02em;
+    padding: 0.1rem 0.45rem;
+    border-radius: 999px;
+    margin-right: 0.3rem;
+  }
+  .convo-topic { margin-top: 0.3rem; font-size: 0.86rem; }
+
+  .section-title { font-size: 0.72rem; letter-spacing: 0.06em; text-transform: uppercase; color: var(--ink-muted); font-weight: 700; margin: 1.1rem 0 0.4rem; }
+
+  .sync-note { font-size: 0.72rem; color: var(--ink-muted); text-align: center; padding: 0.4rem 0; }
+  .sync-reload {
+    border: 1px solid var(--border); background: var(--surface); color: var(--leaf-deep);
+    border-radius: 8px; padding: 0.3rem 0.7rem; margin-left: 0.4rem; font-weight: 600; font-size: 0.75rem;
+  }
+  .copy-row { display: flex; gap: 0.4rem; }
+  .copy-row input { flex: 1; min-width: 0; font-family: "Space Mono", ui-monospace, monospace; font-size: 0.75rem; }
+  .copy-row .copy-btn { width: auto; flex: 0 0 auto; min-height: 40px; }
+  .signout-btn { border: none; background: none; color: var(--ink-muted); font-size: 0.72rem; text-decoration: underline; text-underline-offset: 3px; padding: 0.6rem; }
+
+  /* ---- Passcode gate ---- */
+  .gate {
+    position: fixed; inset: 0; z-index: 60;
+    background: var(--leaf-deep);
+    display: flex; align-items: center; justify-content: center;
+    padding: 16px;
+  }
+  .gate-card {
+    width: min(100%, 340px);
+    background: var(--surface);
+    border-radius: 18px;
+    padding: 1.5rem 1.25rem 1.25rem;
+    display: flex; flex-direction: column; gap: 0.5rem;
+  }
+  .gate-sprout { width: 64px; height: 64px; align-self: center; background: #2b5c35; border-radius: 14px; }
+  .gate-card h1 { font-size: 1.7rem; font-style: italic; color: var(--leaf-deep); text-align: center; margin-bottom: 0.5rem; }
+  .gate-card label { font-size: 0.75rem; font-weight: 600; color: var(--ink-muted); text-transform: uppercase; letter-spacing: 0.03em; }
+  .gate-card input[type=password] {
+    border: 1px solid var(--border); border-radius: 8px; padding: 0.65rem 0.75rem;
+    background: var(--bg); color: var(--ink); font-size: 16px;
+  }
+  .gate-card .primary-btn { min-height: 44px; }
+  .gate-card .primary-btn:disabled { opacity: 0.6; }
+  .gate-msg { min-height: 1.2em; margin: 0; font-size: 0.82rem; color: #b3453f; text-align: center; }
+
+  /* iOS Safari zooms the page into any input under 16px; on a home-screen
+     app that zoom sticks and breaks the layout. */
+  @media (pointer: coarse) {
+    .search-wrap input, .field input, .field select, .field textarea, .chip-add-input { font-size: 16px; }
+  }
+
+  /* ---- Guide ---- */
+  .guide {
+    border: 1px solid var(--border);
+    background: var(--surface);
+    border-radius: 12px;
+    padding: 0.6rem 0.9rem;
+    margin-top: 0.9rem;
+  }
+  .guide summary {
+    cursor: pointer;
+    font-weight: 600;
+    font-size: 0.82rem;
+    color: var(--leaf-deep);
+    list-style: none;
+    display: flex;
+    align-items: center;
+    gap: 0.4rem;
+  }
+  .guide summary::-webkit-details-marker { display: none; }
+  .guide summary::before { content: "▸"; transition: transform 0.15s; font-size: 0.7rem; }
+  .guide[open] summary::before { transform: rotate(90deg); }
+  .guide ul { margin: 0.7rem 0 0.1rem; padding-left: 1.1rem; }
+  .guide li { margin-bottom: 0.5rem; font-size: 0.84rem; color: var(--ink-muted); }
+  .guide li b { color: var(--ink); }
+
+  /* ---- Watering animation ---- */
+  .water-scene {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: 0.2rem;
+    padding: 1.5rem 0 1rem;
+  }
+  .can-wrap {
+    animation: pourTilt 1.1s ease-in-out;
+    transform-origin: 75% 80%;
+  }
+  .can-svg { width: 56px; height: 46px; display: block; }
+  .drops { position: relative; height: 22px; width: 44px; }
+  .drops span {
+    position: absolute;
+    top: 0;
+    width: 4px;
+    height: 9px;
+    border-radius: 50% 50% 50% 50% / 65% 65% 35% 35%;
+    background: #6fb0d8;
+    opacity: 0;
+    animation: dropFall 1.1s ease-in;
+  }
+  .drops span:nth-child(1) { left: 28%; animation-delay: 0.1s; }
+  .drops span:nth-child(2) { left: 45%; animation-delay: 0.3s; }
+  .drops span:nth-child(3) { left: 62%; animation-delay: 0.5s; }
+  .water-plant svg { width: 126px; height: auto; overflow: visible; animation: plantPerk 0.6s ease-out 0.85s both; }
+  .water-caption {
+    font-family: "Cormorant Garamond", Georgia, serif;
+    font-style: italic;
+    font-size: 1.1rem;
+    color: var(--leaf-deep);
+    margin-top: 0.5rem;
+  }
+  @keyframes pourTilt {
+    0% { transform: rotate(0deg); }
+    30% { transform: rotate(-38deg); }
+    70% { transform: rotate(-38deg); }
+    100% { transform: rotate(0deg); }
+  }
+  @keyframes dropFall {
+    0% { opacity: 0; transform: translateY(-4px); }
+    12% { opacity: 1; }
+    80% { opacity: 1; }
+    100% { opacity: 0; transform: translateY(26px); }
+  }
+  @keyframes plantPerk {
+    0% { transform: scale(1); }
+    50% { transform: scale(1.1); }
+    100% { transform: scale(1); }
+  }
+  @media (prefers-reduced-motion: reduce) {
+    .can-wrap, .drops span, .water-plant svg { animation: none !important; }
+  }
+
+  @media (max-width: 480px) {
+    .drawer { max-width: 100%; }
+    /* On a phone the full header pinned to the top ate ~40% of the screen;
+       let it scroll away and keep only the bed tabs within reach. */
+    header.top { position: static; background: none; padding-top: calc(0.9rem + env(safe-area-inset-top, 0px)); }
+    .tab-strip {
+      position: sticky; top: 0; z-index: 20; background: var(--bg);
+      margin: 0 -16px; padding: calc(0.6rem + env(safe-area-inset-top, 0px)) 16px 0.5rem;
+    }
+    /* Two plants per row instead of one. */
+    .biome { padding: 1.1rem 0.75rem 1.25rem; }
+    .planter-box { gap: 0.6rem 0.4rem; padding: 1rem 0.5rem 0.5rem; justify-content: space-around; }
+    .plant-stand svg { width: 104px; }
+  }
+</style>
+
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,600;0,700;1,600&family=Work+Sans:wght@400;500;600;700&family=Space+Mono:wght@400;700&display=swap" rel="stylesheet">
+</head>
+<body>
+<div class="app">
+  <header class="top">
+    <div class="wordmark">
+      <h1>The Garden</h1>
+      <span class="sub">a living map of who you talk to</span>
+    </div>
+    <div class="controls-row">
+      <div class="segmented" id="modeToggle">
+        <button data-mode="relationship" class="active">By Relationship</button>
+        <button data-mode="location">By Location</button>
+      </div>
+      <div class="search-wrap">
+        <input type="text" id="searchInput" placeholder="Search people…">
+      </div>
+      <button class="add-btn" id="openAddBtn">+ Add Plant</button>
+    </div>
+    <details class="guide">
+      <summary>How this works</summary>
+      <ul>
+        <li><b>Each person is a plant.</b> Talking to them waters it back to full health; going quiet lets it wilt.</li>
+        <li><b>Friendship level (1–5)</b> sets how the plant looks (from a simple sprout up to a full rose) — and the closer the level, the faster that plant wilts without contact, since you'd naturally reach out more.</li>
+        <li><b>+ Add Plant</b> anytime — name, tags, location and contact info are all optional, and typing a new tag or location creates its own bed automatically.</li>
+        <li><b>Log a conversation</b> from a plant's detail view as many times a day as you talk to people — it resets their health and stacks onto their history.</li>
+        <li><b>By Relationship / By Location</b> up top switch how the garden is grouped; <b>All</b> always shows everyone in that view.</li>
+      </ul>
+    </details>
+    <div class="tab-strip" id="tabStrip"></div>
+  </header>
+
+  <main id="biomePanel"></main>
+  <p class="sync-note" id="syncNote" hidden></p>
+  <p class="sync-note">
+    <button class="signout-btn" id="shortcutBtn" type="button">iPhone call shortcut</button>
+    <button class="signout-btn" id="signOutBtn" type="button">Sign out of this device</button>
+  </p>
+</div>
+
+<div class="gate" id="gate" hidden>
+  <form class="gate-card" id="gateForm" autocomplete="on">
+    <svg class="gate-sprout" viewBox="0 0 100 100" aria-hidden="true"><rect x="48.5" y="24" width="3" height="36" fill="#f3ead9"/><ellipse cx="36" cy="38" rx="15" ry="7.5" transform="rotate(-31.5 36 38)" fill="#9cd08f"/><ellipse cx="63" cy="31" rx="16" ry="8" transform="rotate(34.4 63 31)" fill="#9cd08f"/><path d="M29 66 H71 L66 84 H34 Z" fill="#a9662f"/><rect x="27" y="60" width="46" height="6" fill="#c98a4c"/></svg>
+    <h1>The Garden</h1>
+    <input type="text" name="username" value="garden" autocomplete="username" hidden>
+    <label for="gatePass">Passcode</label>
+    <input type="password" id="gatePass" name="password" autocomplete="current-password" required>
+    <button class="primary-btn" type="submit" id="gateBtn">Open the garden</button>
+    <p class="gate-msg" id="gateMsg" role="alert"></p>
+  </form>
+</div>
+
+<div id="modalRoot"></div>
+
+<script>
+(function () {
+  "use strict";
+
+  // ---------- constants ----------
+  var DEATH_DAYS = { 1: 180, 2: 90, 3: 45, 4: 21, 5: 10 };
+  var IDEAL_DAYS = { 1: 60, 2: 30, 3: 14, 4: 7, 5: 3 };
+  var LEVEL_NAME = { 1: "Sprout", 2: "Succulent", 3: "Fern", 4: "Blossom", 5: "Rose" };
+  var METHODS = ["Phone", "Text", "In person"];
+  var SETTINGS = ["1v1", "Group"];
+
+  var REL_SEED = ["Friends", "Family", "Professional", "Other"];
+  var LOC_SEED = ["Coast", "City", "Forest", "Other"];
+
+  var REL_BIOME_CLASS = { Friends: "biome-friends", Family: "biome-family", Professional: "biome-professional", Other: "biome-other-rel" };
+  var LOC_BIOME_CLASS = { Coast: "biome-coast", City: "biome-city", Forest: "biome-forest", Other: "biome-other-loc" };
+  // Accent colors double as each stem's color, so a plant's two stems visibly
+  // read as "which relationship tag" and "which place" it belongs to.
+  var REL_ACCENT = { Friends: "#d9a53f", Family: "#a9662f", Professional: "#4f7c72", Other: "#3f7d4a" };
+  var LOC_ACCENT = { Coast: "#c98a4c", City: "#5b6f8a", Forest: "#4d6b57", Other: "#3f7d4a" };
+  // A custom tag beyond the seed list still gets a stable, distinct stem
+  // color instead of falling back to one generic hue every time.
+  function hashHue(str) {
+    var h = 0;
+    for (var i = 0; i < str.length; i++) h = (h * 31 + str.charCodeAt(i)) >>> 0;
+    return h % 360;
+  }
+  function accentFor(tag, map) {
+    if (map[tag]) return map[tag];
+    return "hsl(" + hashHue(tag) + ", 42%, 42%)";
+  }
+
+  // Hand-drawn scenery for each biome, so the background reads as "what
+  // this place/relationship is actually like" rather than a plain gradient.
+  // Each is a self-contained SVG scaled to fill the biome panel.
+  var BIOME_DECO_SVG = (function () {
+    function svg(inner) {
+      return '<svg class="biome-deco" viewBox="0 0 400 220" preserveAspectRatio="xMidYMax slice" xmlns="http://www.w3.org/2000/svg">' + inner + '</svg>';
+    }
+    return {
+      // Friends — a sunny meadow: warm sun, drifting bees, a scatter of daisies.
+      "biome-friends": svg(
+        '<circle cx="335" cy="45" r="36" fill="#fff3c2" fill-opacity="0.75"/>' +
+        '<path d="M0 175 Q100 150 210 172 T400 165 V220 H0 Z" fill="#fff" fill-opacity="0.16"/>' +
+        '<g fill="#fff" fill-opacity="0.9">' +
+          '<circle cx="55" cy="190" r="3.5"/><circle cx="80" cy="198" r="3.5"/><circle cx="150" cy="192" r="3.5"/>' +
+          '<circle cx="255" cy="200" r="3.5"/><circle cx="305" cy="188" r="3.5"/><circle cx="340" cy="205" r="3.5"/>' +
+        '</g>' +
+        '<g fill-opacity="0.55" fill="#3a2b0d">' +
+          '<ellipse cx="120" cy="60" rx="7" ry="4" transform="rotate(20 120 60)"/>' +
+          '<ellipse cx="270" cy="90" rx="7" ry="4" transform="rotate(-15 270 90)"/>' +
+        '</g>'
+      ),
+      // Family — a backyard orchard at golden hour: two fruit trees and a fence line.
+      "biome-family": svg(
+        '<rect x="0" y="178" width="400" height="42" fill="#5a3417" fill-opacity="0.18"/>' +
+        '<g fill-opacity="0.3">' +
+          '<rect x="44" y="120" width="8" height="60" fill="#5a3417"/>' +
+          '<circle cx="48" cy="105" r="40" fill="#c9843a"/>' +
+          '<rect x="346" y="110" width="9" height="70" fill="#5a3417"/>' +
+          '<circle cx="350" cy="92" r="46" fill="#c9843a"/>' +
+        '</g>' +
+        '<g fill="#e8b23f" fill-opacity="0.6">' +
+          '<circle cx="34" cy="98" r="4"/><circle cx="60" cy="112" r="4"/><circle cx="336" cy="82" r="4"/><circle cx="366" cy="100" r="4"/>' +
+        '</g>' +
+        '<path d="M100 190 L100 175 M140 190 L140 175 M180 190 L180 175 M220 190 L220 175 M260 190 L260 175" stroke="#5a3417" stroke-opacity="0.35" stroke-width="4"/>' +
+        '<path d="M95 178 H265" stroke="#5a3417" stroke-opacity="0.35" stroke-width="3"/>'
+      ),
+      // Professional — a tidy greenhouse: glass grid, sloped roofline, a potting shelf.
+      "biome-professional": svg(
+        '<g stroke="#fff" stroke-opacity="0.16" stroke-width="1.5">' +
+          '<line x1="0" y1="0" x2="0" y2="220"/><line x1="50" y1="0" x2="50" y2="220"/><line x1="100" y1="0" x2="100" y2="220"/>' +
+          '<line x1="150" y1="0" x2="150" y2="220"/><line x1="200" y1="0" x2="200" y2="220"/><line x1="250" y1="0" x2="250" y2="220"/>' +
+          '<line x1="300" y1="0" x2="300" y2="220"/><line x1="350" y1="0" x2="350" y2="220"/><line x1="400" y1="0" x2="400" y2="220"/>' +
+          '<line x1="0" y1="70" x2="400" y2="70"/><line x1="0" y1="140" x2="400" y2="140"/>' +
+        '</g>' +
+        '<path d="M0 30 L200 4 L400 30" stroke="#fff" stroke-opacity="0.3" stroke-width="2.5" fill="none"/>' +
+        '<rect x="0" y="185" width="400" height="6" fill="#fff" fill-opacity="0.25"/>'
+      ),
+      // Other (relationship) — quiet wild undergrowth: dense ferns, low light.
+      "biome-other-rel": svg(
+        '<g stroke="#7fae74" stroke-opacity="0.4" fill="none" stroke-width="2.5" stroke-linecap="round">' +
+          '<path d="M20 200 C 10 160,10 130,25 95"/><path d="M25 150 C 5 145,-5 130,-15 110"/><path d="M25 120 C 45 115,58 100,65 80"/>' +
+          '<path d="M370 205 C 385 165,385 130,368 92"/><path d="M368 145 C 392 140,405 122,415 100"/>' +
+          '<path d="M200 210 C 195 175,195 150,205 120"/><path d="M205 155 C 180 150,168 135,158 115"/>' +
+        '</g>'
+      ),
+      // Coast — golden hills, live oak, a hint of ocean haze.
+      "biome-coast": svg(
+        '<circle cx="335" cy="40" r="30" fill="#fff3c2" fill-opacity="0.7"/>' +
+        '<path d="M0 150 Q90 110 180 145 T400 130 V220 H0 Z" fill="#e0a94a" fill-opacity="0.35"/>' +
+        '<path d="M0 190 Q120 165 240 188 T400 178 V220 H0 Z" fill="#c98a3f" fill-opacity="0.3"/>' +
+        '<g fill-opacity="0.3" fill="#5a4a2a">' +
+          '<ellipse cx="90" cy="128" rx="34" ry="16"/><rect x="86" y="138" width="8" height="24"/>' +
+        '</g>'
+      ),
+      // City — a rooftop container garden: skyline silhouette and a railing.
+      "biome-city": svg(
+        '<g fill="#1e2636" fill-opacity="0.45">' +
+          '<rect x="10" y="90" width="30" height="120"/><rect x="46" y="60" width="24" height="150"/>' +
+          '<rect x="76" y="105" width="20" height="105"/><rect x="290" y="75" width="26" height="135"/>' +
+          '<rect x="322" y="40" width="22" height="170"/><rect x="350" y="100" width="28" height="110"/>' +
+        '</g>' +
+        '<g fill="#ffe9a8" fill-opacity="0.5">' +
+          '<rect x="16" y="100" width="5" height="7"/><rect x="28" y="120" width="5" height="7"/><rect x="52" y="75" width="5" height="7"/>' +
+          '<rect x="330" y="55" width="5" height="7"/><rect x="358" y="115" width="5" height="7"/>' +
+        '</g>' +
+        '<rect x="0" y="196" width="400" height="4" fill="#fff" fill-opacity="0.3"/>' +
+        '<path d="M20 196 V178 M80 196 V178 M140 196 V178 M200 196 V178 M260 196 V178 M320 196 V178 M380 196 V178" stroke="#fff" stroke-opacity="0.3" stroke-width="3"/>'
+      ),
+      // Forest — misty temperate rainforest: layered conifers, soft rain.
+      "biome-forest": svg(
+        '<g fill="#233b2c" fill-opacity="0.28">' +
+          '<polygon points="60,205 30,120 90,120"/><polygon points="150,210 115,105 185,105"/>' +
+          '<polygon points="260,208 222,110 298,110"/><polygon points="350,205 320,130 380,130"/>' +
+        '</g>' +
+        '<g stroke="#cfe0d6" stroke-opacity="0.35" stroke-width="2" stroke-linecap="round">' +
+          '<line x1="40" y1="10" x2="30" y2="50"/><line x1="120" y1="0" x2="108" y2="45"/><line x1="220" y1="15" x2="210" y2="55"/>' +
+          '<line x1="300" y1="5" x2="288" y2="48"/><line x1="370" y1="20" x2="360" y2="58"/>' +
+        '</g>'
+      ),
+      // Other (location) — an unplaced, softly wild garden corner.
+      "biome-other-loc": svg(
+        '<path d="M0 185 Q100 160 200 182 T400 170 V220 H0 Z" fill="#fff" fill-opacity="0.08"/>' +
+        '<g stroke="#7fae74" stroke-opacity="0.35" fill="none" stroke-width="2.5" stroke-linecap="round">' +
+          '<path d="M60 210 C 55 180,55 160,65 135"/><path d="M330 210 C 335 178,335 158,325 132"/>' +
+        '</g>'
+      ),
+      "biome-generic": svg(
+        '<path d="M0 190 Q100 165 200 185 T400 175 V220 H0 Z" fill="#fff" fill-opacity="0.08"/>'
+      ),
+      // All — the whole garden at once: a wide, gentle overview.
+      "biome-all": svg(
+        '<circle cx="335" cy="40" r="30" fill="#fff8d8" fill-opacity="0.6"/>' +
+        '<path d="M0 170 Q100 140 200 165 T400 155 V220 H0 Z" fill="#3f7d4a" fill-opacity="0.18"/>' +
+        '<path d="M0 200 Q120 180 240 198 T400 188 V220 H0 Z" fill="#2b5c35" fill-opacity="0.2"/>'
+      )
+    };
+  })();
+
+  function uid() { return Math.random().toString(36).slice(2) + Date.now().toString(36); }
+  function nowISO() { return new Date().toISOString(); }
+  function daysSince(iso) {
+    if (!iso) return 9999;
+    var ms = Date.now() - new Date(iso).getTime();
+    return ms / 86400000;
+  }
+  function fmtDaysAgo(iso) {
+    var d = daysSince(iso);
+    if (d < 1) return "today";
+    var n = Math.floor(d);
+    return n + (n === 1 ? " day ago" : " days ago");
+  }
+  function fmtDate(iso) {
+    try {
+      return new Date(iso).toLocaleDateString(undefined, { month: "short", day: "numeric", year: "numeric" });
+    } catch (e) { return iso; }
+  }
+  function escapeHtml(s) {
+    return String(s == null ? "" : s)
+      .replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;").replace(/"/g, "&quot;");
+  }
+  function healthOf(plant) {
+    var level = plant.level || 3;
+    var death = DEATH_DAYS[level] || DEATH_DAYS[3];
+    var d = daysSince(plant.lastContactDate || plant.createdAt);
+    var pct = 100 - (d / death) * 100;
+    if (pct < 0) pct = 0;
+    if (pct > 100) pct = 100;
+    return pct;
+  }
+  function healthState(pct) {
+    if (pct > 80) return "thriving";
+    if (pct > 60) return "healthy";
+    if (pct > 30) return "wilting";
+    if (pct > 10) return "dying";
+    return "dead";
+  }
+
+  // ---------- plant species, one per relationship/location tag ----------
+  // Every species function takes (level 1-5, accentColor) and returns SVG
+  // markup assuming origin (0,0) sits where the plant meets the soil,
+  // growing upward (negative y). Foliage stays a natural green per species
+  // so plants read as real plants; the tag's accent shows up only in each
+  // species' distinguishing detail (petals, fruit, ribbon, bloom, cap) —
+  // that's what ties the plant's look to "what this place/relationship is
+  // like" without painting whole plants odd colors like slate-blue or tan.
+  function byLevel(level, arr) { return arr[Math.max(1, Math.min(5, level || 3)) - 1]; }
+
+  // Friends — a loose wildflower, one daisy head (a second smaller one once close).
+  function wildflowerSpecies(level, accent) {
+    var green = "#4a9155";
+    var h = byLevel(level, [12, 17, 22, 27, 32]);
+    var petals = byLevel(level, [4, 5, 5, 6, 7]);
+    var r = byLevel(level, [2.6, 3.2, 3.8, 4.4, 5]);
+    var out = '<path d="M0 0 Q -2 -' + (h * 0.5).toFixed(1) + ' 0 -' + h + '" stroke="' + green + '" stroke-width="1.8" fill="none"/>';
+    if (level >= 3) {
+      out += '<path d="M0 -' + (h * 0.45).toFixed(1) + ' C -6 -' + (h * 0.4).toFixed(1) + ',-8 -' + (h * 0.55).toFixed(1) + ',-10 -' + (h * 0.6).toFixed(1) + '" stroke="' + green + '" stroke-width="1.6" fill="none" stroke-linecap="round"/>';
+    }
+    var petalMarkup = "";
+    for (var i = 0; i < petals; i++) {
+      petalMarkup += '<ellipse cy="-' + (r * 1.5).toFixed(1) + '" rx="' + (r * 0.55).toFixed(1) + '" ry="' + r + '" fill="' + accent + '" transform="rotate(' + ((360 / petals) * i).toFixed(1) + ')"/>';
+    }
+    out += '<g transform="translate(0,-' + h + ')">' + petalMarkup + '<circle r="' + (r * 0.55).toFixed(1) + '" fill="#f6d35c"/></g>';
+    if (level >= 4) out += '<g transform="translate(9,-' + (h * 0.7).toFixed(1) + ') scale(0.7)">' + petalMarkup + '<circle r="' + (r * 0.55).toFixed(1) + '" fill="#f6d35c"/></g>';
+    return out;
+  }
+
+  // Family — a small fruit-bearing shrub, more fruit the closer you are.
+  function fruitShrubSpecies(level, accent) {
+    var green = "#4a9155";
+    var h = byLevel(level, [5, 7, 9, 11, 13]);
+    var canopyR = byLevel(level, [6, 7.5, 9, 10.5, 12]);
+    var fruitCount = byLevel(level, [2, 3, 4, 5, 7]);
+    var cy0 = h + canopyR * 0.6;
+    var out = '<path d="M0 0 L0 -' + h + '" stroke="#7a481f" stroke-width="2.2" fill="none"/>' +
+      '<circle cy="-' + cy0.toFixed(1) + '" r="' + canopyR + '" fill="' + green + '"/>' +
+      '<circle cx="-' + (canopyR * 0.6).toFixed(1) + '" cy="-' + (h + canopyR * 0.2).toFixed(1) + '" r="' + (canopyR * 0.72).toFixed(1) + '" fill="' + green + '" fill-opacity="0.9"/>' +
+      '<circle cx="' + (canopyR * 0.6).toFixed(1) + '" cy="-' + (h + canopyR * 0.2).toFixed(1) + '" r="' + (canopyR * 0.72).toFixed(1) + '" fill="' + green + '" fill-opacity="0.9"/>';
+    for (var i = 0; i < fruitCount; i++) {
+      var ang = (i / fruitCount) * Math.PI * 2;
+      var fx = Math.cos(ang) * canopyR * 0.65;
+      var fy = -cy0 + Math.sin(ang) * canopyR * 0.55;
+      out += '<circle cx="' + fx.toFixed(1) + '" cy="' + fy.toFixed(1) + '" r="1.9" fill="' + accent + '"/>';
+    }
+    return out;
+  }
+
+  // Professional — a neat, trimmed topiary; tidier and taller the closer you are.
+  function topiarySpecies(level, accent) {
+    var green = "#2b5c35";
+    var positions = byLevel(level, [[-8], [-10], [-9, -19], [-10, -21], [-9, -18, -27]]);
+    var r = byLevel(level, [5.5, 6.5, 6, 6.8, 6.2]);
+    var out = '<path d="M0 0 L0 ' + (positions[positions.length - 1] + r * 0.2).toFixed(1) + '" stroke="#7a481f" stroke-width="2" fill="none"/>';
+    for (var i = 0; i < positions.length; i++) {
+      var y = positions[i];
+      out += '<circle cy="' + y + '" r="' + r + '" fill="' + green + '"/>' +
+        '<rect x="-' + (r * 0.55).toFixed(1) + '" y="' + (y + r - 1.4).toFixed(1) + '" width="' + (r * 1.1).toFixed(1) + '" height="2.6" rx="1.3" fill="' + accent + '"/>';
+    }
+    return out;
+  }
+
+  // Any other relationship tag — a wild fern, fronds tipped with fresh new growth.
+  function fernSpecies(level, accent) {
+    var green = "#2f6b3c";
+    var fronds = byLevel(level, [2, 3, 4, 5, 6]);
+    var h = byLevel(level, [14, 18, 22, 26, 30]);
+    var out = '<path d="M0 0 C -1 -' + (h * 0.4).toFixed(1) + ',-1 -' + (h * 0.7).toFixed(1) + ',0 -' + h + '" stroke="' + green + '" stroke-width="2" fill="none"/>';
+    for (var i = 0; i < fronds; i++) {
+      var t = (i + 1) / (fronds + 1);
+      var fy = -h * t;
+      var side = i % 2 === 0 ? -1 : 1;
+      var len = 6 + t * 10;
+      var tx = side * len;
+      var ty = fy - len * 0.4;
+      out += '<path d="M0 ' + fy.toFixed(1) + ' C ' + (side * len * 0.5).toFixed(1) + ' ' + (fy - len * 0.2).toFixed(1) + ',' + tx.toFixed(1) + ' ' + ty.toFixed(1) + ',' + (tx + side * 2).toFixed(1) + ' ' + (ty - 2).toFixed(1) + '" stroke="' + green + '" stroke-width="1.6" fill="none" stroke-linecap="round"/>' +
+        '<circle cx="' + (tx + side * 2).toFixed(1) + '" cy="' + (ty - 2).toFixed(1) + '" r="1.1" fill="' + accent + '"/>';
+    }
+    return out;
+  }
+
+  // Coast — a rosette succulent with sun-tinted leaf tips.
+  function succulentSpecies(level, accent) {
+    var green = "#7a9b6e";
+    var leaves = byLevel(level, [5, 6, 7, 8, 9]);
+    var r = byLevel(level, [7, 9, 11, 13, 15]);
+    var out = "";
+    for (var i = 0; i < leaves; i++) {
+      var ang = (360 / leaves) * i;
+      var len = (r * (0.55 + (i % 2) * 0.15)).toFixed(1);
+      out += '<g transform="rotate(' + ang.toFixed(1) + ')">' +
+        '<path d="M0 0 C -2 -' + (len * 0.5).toFixed(1) + ',-1.5 -' + (len * 0.85).toFixed(1) + ',0 -' + len + ' C 1.5 -' + (len * 0.85).toFixed(1) + ',2 -' + (len * 0.5).toFixed(1) + ',0 0 Z" fill="' + green + '"/>' +
+        '<path d="M0 -' + (len * 0.7).toFixed(1) + ' L0 -' + len + '" stroke="' + accent + '" stroke-width="1.6" stroke-linecap="round"/>' +
+        '</g>';
+    }
+    if (level >= 4) out += '<circle cy="-' + (r * 0.3).toFixed(1) + '" r="' + (r * 0.28).toFixed(1) + '" fill="#e9dcae"/>';
+    return out;
+  }
+
+  // City — a tight window-box flower cluster, more blooms the closer you are.
+  function geraniumBoxSpecies(level, accent) {
+    var green = "#4a9155";
+    var heads = byLevel(level, [1, 2, 3, 4, 5]);
+    var h = byLevel(level, [10, 13, 16, 19, 22]);
+    var out = '<path d="M0 0 L0 -' + (h * 0.5).toFixed(1) + '" stroke="' + green + '" stroke-width="2" fill="none"/>' +
+      '<ellipse cy="-' + (h * 0.5).toFixed(1) + '" rx="6" ry="4" fill="' + green + '"/>';
+    for (var i = 0; i < heads; i++) {
+      var rad = ((-90 + (i - (heads - 1) / 2) * 22) * Math.PI) / 180;
+      var dist = h * 0.55;
+      var hx = Math.cos(rad) * dist;
+      var hy = Math.sin(rad) * dist - h * 0.15;
+      out += '<circle cx="' + hx.toFixed(1) + '" cy="' + hy.toFixed(1) + '" r="3.2" fill="' + accent + '"/>' +
+        '<circle cx="' + hx.toFixed(1) + '" cy="' + hy.toFixed(1) + '" r="1.3" fill="#f6d35c"/>';
+    }
+    return out;
+  }
+
+  // Forest — mossy mounds and a fern frond in the wet shade, a mushroom once it's thriving.
+  function mossFernSpecies(level, accent) {
+    var green = "#3a6b45";
+    var mounds = byLevel(level, [2, 3, 3, 4, 5]);
+    var out = "";
+    for (var i = 0; i < mounds; i++) {
+      var mx = (i - (mounds - 1) / 2) * 6;
+      var mr = 4.5 + (i % 2) * 1.2;
+      out += '<circle cx="' + mx.toFixed(1) + '" cy="-' + mr.toFixed(1) + '" r="' + mr + '" fill="' + green + '" fill-opacity="0.9"/>';
+    }
+    var fernH = byLevel(level, [10, 14, 18, 22, 26]);
+    out += '<path d="M0 -4 C -1 -' + (fernH * 0.5).toFixed(1) + ',-1 -' + (fernH * 0.8).toFixed(1) + ',0 -' + fernH + '" stroke="#2f5c3a" stroke-width="1.8" fill="none"/>' +
+      '<path d="M0 -' + (fernH * 0.5).toFixed(1) + ' C -6 -' + (fernH * 0.45).toFixed(1) + ',-9 -' + (fernH * 0.6).toFixed(1) + ',-11 -' + (fernH * 0.65).toFixed(1) + '" stroke="#2f5c3a" stroke-width="1.6" fill="none" stroke-linecap="round"/>';
+    if (level >= 3) {
+      out += '<path d="M7 -3 L7 -7" stroke="#eee6d6" stroke-width="1.8" stroke-linecap="round"/>' +
+        '<ellipse cx="7" cy="-8" rx="3.4" ry="2.2" fill="#c9683f"/>' +
+        '<circle cx="6" cy="-8.4" r="0.6" fill="#eee6d6"/><circle cx="8.2" cy="-8" r="0.5" fill="#eee6d6"/>';
+    }
+    out += '<circle cx="-3" cy="-6" r="0.9" fill="' + accent + '" fill-opacity="0.8"/>';
+    return out;
+  }
+
+  // Any other location tag — an ornamental grass tuft, seed heads once established.
+  function grassTuftSpecies(level, accent) {
+    var green = "#5aa862";
+    var blades = byLevel(level, [4, 5, 6, 7, 8]);
+    var lenBase = byLevel(level, [12, 15, 18, 21, 24]);
+    var out = "";
+    for (var i = 0; i < blades; i++) {
+      var t = i / (blades - 1 || 1);
+      var lean = (t - 0.5) * 26;
+      var len = lenBase * (0.8 + (i % 3) * 0.1);
+      out += '<path d="M0 0 Q ' + (lean * 0.5).toFixed(1) + ' -' + (len * 0.6).toFixed(1) + ' ' + lean.toFixed(1) + ' -' + len.toFixed(1) + '" stroke="' + green + '" stroke-width="1.6" fill="none" stroke-linecap="round"/>';
+    }
+    if (level >= 4) out += '<circle cy="-' + (lenBase * 0.9).toFixed(1) + '" r="1.6" fill="' + accent + '"/>';
+    return out;
+  }
+
+  // Fallback for any custom tag beyond the seed list — a generic leafy shrub.
+  function leafyShrubSpecies(level, accent) {
+    var green = "#4a9155";
+    var leaves = byLevel(level, [3, 4, 5, 6, 7]);
+    var r = byLevel(level, [6, 8, 10, 12, 14]);
+    var out = '<path d="M0 0 L0 -' + (r * 0.4).toFixed(1) + '" stroke="#3f7d4a" stroke-width="2" fill="none"/>';
+    for (var i = 0; i < leaves; i++) {
+      out += '<g transform="translate(0,-' + (r * 0.5).toFixed(1) + ') rotate(' + ((360 / leaves) * i).toFixed(1) + ')">' +
+        '<ellipse cy="-' + (r * 0.4).toFixed(1) + '" rx="' + (r * 0.32).toFixed(1) + '" ry="' + (r * 0.5).toFixed(1) + '" fill="' + green + '"/>' +
+        '</g>';
+    }
+    out += '<circle cy="-' + (r * 0.5).toFixed(1) + '" r="' + (r * 0.18).toFixed(1) + '" fill="' + accent + '"/>';
+    return out;
+  }
+
+  var REL_SPECIES = { Friends: wildflowerSpecies, Family: fruitShrubSpecies, Professional: topiarySpecies, Other: fernSpecies };
+  var LOC_SPECIES = { Coast: succulentSpecies, City: geraniumBoxSpecies, Forest: mossFernSpecies, Other: grassTuftSpecies };
+
+  // A plant's two named tags (first relationship tag + location, defaulting
+  // to "Other" for either) — what both plantSVG and the marker tag key off.
+  function primaryTags(plant) {
+    return {
+      rel: (plant.relationshipTags && plant.relationshipTags[0]) || "Other",
+      loc: plant.location || "Other"
+    };
+  }
+
+  // One plant, one pot, one trunk — it forks partway up into two distinct
+  // branches: the left carries its relationship tag's species and color,
+  // the right its location's. So it reads as one plant that becomes two
+  // things, not two separate plants sharing a planter. Both branches (and
+  // the trunk itself) grow taller/fuller with friendship level.
+  function plantSVG(level, relTag, locTag) {
+    level = Math.max(1, Math.min(5, level || 3));
+    relTag = relTag || "Other";
+    locTag = locTag || "Other";
+    var relColor = accentFor(relTag, REL_ACCENT);
+    var locColor = accentFor(locTag, LOC_ACCENT);
+    var relFn = REL_SPECIES[relTag] || leafyShrubSpecies;
+    var locFn = LOC_SPECIES[locTag] || leafyShrubSpecies;
+    var baseX = 60, baseY = 92, potW = 56, potH = 14;
+    var potX = baseX - potW / 2;
+    var pot = '<rect x="' + potX + '" y="' + baseY + '" width="' + potW + '" height="' + potH + '" rx="4" fill="#a9662f" stroke="#7a481f" stroke-width="1.6"/>' +
+      '<rect x="' + potX + '" y="' + baseY + '" width="' + potW + '" height="4" rx="2" fill="#c98a4c"/>' +
+      '<line x1="' + (potX + potW * 0.5).toFixed(1) + '" y1="' + (baseY + 4) + '" x2="' + (potX + potW * 0.5).toFixed(1) + '" y2="' + (baseY + potH) + '" stroke="#7a481f" stroke-width="1" stroke-opacity="0.35"/>';
+    var soilLine = '<ellipse cx="' + baseX + '" cy="' + baseY + '" rx="' + (potW / 2 - 2) + '" ry="2.6" fill="#5a3417"/>';
+    var forkH = 7 + level * 2.2;
+    var forkY = baseY - forkH;
+    var spread = 12 + level * 1.2;
+    var rise = 4 + level * 0.9;
+    var leftEnd = { x: baseX - spread, y: forkY - rise };
+    var rightEnd = { x: baseX + spread, y: forkY - rise };
+    var trunkW = (2.6 + level * 0.35).toFixed(1);
+    var branchW = (2 + level * 0.3).toFixed(1);
+    var trunk = '<path d="M' + baseX + ' ' + baseY + ' Q ' + (baseX - 1.5) + ' ' + (baseY - forkH * 0.6).toFixed(1) + ' ' + baseX + ' ' + forkY.toFixed(1) + '" stroke="#6b4f34" stroke-width="' + trunkW + '" fill="none" stroke-linecap="round"/>';
+    var branchA = '<path d="M' + baseX + ' ' + forkY.toFixed(1) + ' Q ' + (baseX - spread * 0.45).toFixed(1) + ' ' + (forkY - rise * 0.5).toFixed(1) + ' ' + leftEnd.x.toFixed(1) + ' ' + leftEnd.y.toFixed(1) + '" stroke="' + relColor + '" stroke-width="' + branchW + '" fill="none" stroke-linecap="round"/>' +
+      '<g transform="translate(' + leftEnd.x.toFixed(1) + ',' + leftEnd.y.toFixed(1) + ')">' + relFn(level, relColor) + '</g>';
+    var branchB = '<path d="M' + baseX + ' ' + forkY.toFixed(1) + ' Q ' + (baseX + spread * 0.45).toFixed(1) + ' ' + (forkY - rise * 0.5).toFixed(1) + ' ' + rightEnd.x.toFixed(1) + ' ' + rightEnd.y.toFixed(1) + '" stroke="' + locColor + '" stroke-width="' + branchW + '" fill="none" stroke-linecap="round"/>' +
+      '<g transform="translate(' + rightEnd.x.toFixed(1) + ',' + rightEnd.y.toFixed(1) + ')">' + locFn(level, locColor) + '</g>';
+    return '<svg viewBox="0 0 120 112" xmlns="http://www.w3.org/2000/svg">' + pot + soilLine + trunk + branchA + branchB + '</svg>';
+  }
+  // Combined transform for a plant instance: friendship level scales its
+  // overall size, health state tips it over as it wilts. Kept as one
+  // inline style (rather than split across CSS classes) since both need to
+  // land in the same `transform` property.
+  function plantStyle(level, state) {
+    var scale = (0.8 + (Math.max(1, Math.min(5, level || 3)) - 1) * 0.09).toFixed(2);
+    var rot = { thriving: 0, healthy: 0, wilting: -3, dying: -7, dead: -12 }[state] || 0;
+    return 'transform: scale(' + scale + ') rotate(' + rot + 'deg); transform-origin: bottom center; display: inline-block;';
+  }
+
+  function wateringSceneHtml(plant) {
+    var tags = primaryTags(plant);
+    var level = plant.level;
+    var canSvg = '<svg class="can-svg" viewBox="0 0 60 50" xmlns="http://www.w3.org/2000/svg">' +
+      '<ellipse cx="24" cy="30" rx="16" ry="12" fill="#4f7c72"/>' +
+      '<path d="M38 24 L56 13" stroke="#4f7c72" stroke-width="6" stroke-linecap="round"/>' +
+      '<path d="M12 20 C4 14, 4 6, 12 3" stroke="#4f7c72" stroke-width="4" fill="none" stroke-linecap="round"/>' +
+      '</svg>';
+    return '<div class="water-scene">' +
+      '<div class="can-wrap">' + canSvg + '</div>' +
+      '<div class="drops"><span></span><span></span><span></span></div>' +
+      '<div class="water-plant plant-thriving" style="' + plantStyle(level, "thriving") + '">' + plantSVG(level, tags.rel, tags.loc) + '</div>' +
+      '<p class="water-caption">Watered!</p>' +
+      '</div>';
+  }
+
+  // ---------- state ----------
+  var state = {
+    plants: [],
+    mode: "relationship",
+    activeTab: "Friends",
+    search: "",
+    dbReady: false,
+    localOnly: false
+  };
+  var LOCAL_KEY = "garden_cache_v1";
+
+  function loadLocal() {
+    try { return JSON.parse(localStorage.getItem(LOCAL_KEY) || "[]"); } catch (e) { return []; }
+  }
+  function saveLocal() {
+    try { localStorage.setItem(LOCAL_KEY, JSON.stringify(state.plants)); } catch (e) {}
+  }
+
+  // ---------- tabs / grouping ----------
+  function currentSeed() { return state.mode === "relationship" ? REL_SEED : LOC_SEED; }
+  function currentBiomeClass(tag) {
+    if (tag === "All") return "biome-all";
+    var map = state.mode === "relationship" ? REL_BIOME_CLASS : LOC_BIOME_CLASS;
+    return map[tag] || "biome-generic";
+  }
+  function tagsOf(plant) {
+    if (state.mode === "relationship") return (plant.relationshipTags && plant.relationshipTags.length) ? plant.relationshipTags : ["Other"];
+    return [plant.location || "Other"];
+  }
+  function allTabs() {
+    var seed = currentSeed();
+    var extra = [];
+    state.plants.forEach(function (p) {
+      tagsOf(p).forEach(function (t) {
+        if (seed.indexOf(t) === -1 && extra.indexOf(t) === -1) extra.push(t);
+      });
+    });
+    extra.sort();
+    return ["All"].concat(seed).concat(extra);
+  }
+  function plantsInTab(tab) {
+    var q = state.search.trim().toLowerCase();
+    return state.plants.filter(function (p) {
+      if (tab !== "All" && tagsOf(p).indexOf(tab) === -1) return false;
+      if (q && (p.name || "").toLowerCase().indexOf(q) === -1) return false;
+      return true;
+    });
+  }
+  // The two-line caption on a plant showing both biomes it belongs to
+  // (e.g. "Family · Forest") regardless of which view is active.
+  function plantTagLine(plant) {
+    var rel = (plant.relationshipTags && plant.relationshipTags.length) ? plant.relationshipTags.join("/") : null;
+    var loc = plant.location || null;
+    return [rel, loc].filter(Boolean).join(" · ");
+  }
+
+  // ---------- rendering ----------
+  function render() {
+    renderTabs();
+    renderBiome();
+  }
+
+  function renderTabs() {
+    var strip = document.getElementById("tabStrip");
+    var tabs = allTabs();
+    if (tabs.indexOf(state.activeTab) === -1) state.activeTab = tabs[0];
+    strip.innerHTML = tabs.map(function (t) {
+      var count = plantsInTab(t).length;
+      var active = t === state.activeTab;
+      var bg = active ? tabActiveColor(t) : "";
+      return '<button class="tab-chip' + (active ? " active" : "") + '" data-tab="' + escapeHtml(t) + '"' +
+        (active ? ' style="background:' + bg + '"' : '') + '>' + escapeHtml(t) +
+        ' <span class="count">' + count + '</span></button>';
+    }).join("");
+    Array.prototype.forEach.call(strip.querySelectorAll(".tab-chip"), function (btn) {
+      btn.addEventListener("click", function () {
+        state.activeTab = btn.getAttribute("data-tab");
+        render();
+      });
+    });
+  }
+
+  function tabActiveColor(tag) {
+    if (tag === "All") return "#5c7a52";
+    return accentFor(tag, state.mode === "relationship" ? REL_ACCENT : LOC_ACCENT);
+  }
+
+  function renderBiome() {
+    var panel = document.getElementById("biomePanel");
+    var tab = state.activeTab;
+    var list = plantsInTab(tab).sort(function (a, b) { return healthOf(a) - healthOf(b); });
+    var biomeClass = currentBiomeClass(tab);
+    var label = tab === "All" ? "The whole garden" : (state.mode === "relationship" ? "Relationship" : "Location") + " · " + tab;
+
+    var body;
+    if (list.length) {
+      var ROW_SIZE = 6;
+      var rows = [];
+      for (var i = 0; i < list.length; i += ROW_SIZE) rows.push(list.slice(i, i + ROW_SIZE));
+      body = '<div class="garden-beds">' + rows.map(function (row) {
+        return '<div class="planter-box">' + row.map(renderPlantStand).join("") + '</div>';
+      }).join("") + '</div>';
+    } else {
+      body = '<div class="empty-bed">' + (tab === "All"
+        ? "Nothing planted yet. Add your first plant to get started."
+        : "Nothing planted here yet. Add someone with the " + escapeHtml(tab) + " tag to see them in this bed.") + '</div>';
+    }
+
+    var deco = BIOME_DECO_SVG[biomeClass] || "";
+    panel.innerHTML = '<div class="biome ' + biomeClass + '">' + deco + '<span class="biome-label">' + escapeHtml(label) + '</span>' + body + '</div>';
+
+    Array.prototype.forEach.call(panel.querySelectorAll(".plant-stand"), function (el) {
+      el.addEventListener("click", function () {
+        openDetail(el.getAttribute("data-id"));
+      });
+    });
+  }
+
+  // A single plant standing in its planter row. The marker tag carries the
+  // name plus both biome tags (relationship and location) so which two
+  // things this plant belongs to stays legible, not just inferable from
+  // branch color/shape; full stats (%, history) are one click away.
+  var HEALTH_DOT_COLOR = { thriving: "#6fd67a", healthy: "#a8d67a", wilting: "#e0b24c", dying: "#e0824c", dead: "#8a7a68" };
+  function renderPlantStand(plant) {
+    var pct = healthOf(plant);
+    var st = healthState(pct);
+    var tags = primaryTags(plant);
+    var tagLine = plantTagLine(plant);
+    var title = (plant.name || "Unnamed") + (tagLine ? " — " + tagLine : "") + " — " + Math.round(pct) + "% healthy";
+    return '<button class="plant-stand" data-id="' + plant.id + '" title="' + escapeHtml(title) + '">' +
+      '<div class="plant-' + st + '" style="' + plantStyle(plant.level, st) + '">' + plantSVG(plant.level, tags.rel, tags.loc) + '</div>' +
+      '<span class="marker-tag">' +
+        '<span class="marker-name"><span class="health-dot" style="background:' + HEALTH_DOT_COLOR[st] + '"></span>' + escapeHtml(plant.name || "Unnamed") + '</span>' +
+        (tagLine ? '<span class="marker-sub">' + escapeHtml(tagLine) + '</span>' : '') +
+      '</span>' +
+      '</button>';
+  }
+
+  // ---------- modal helpers ----------
+  function openScrim(contentHtml, opts) {
+    opts = opts || {};
+    var root = document.getElementById("modalRoot");
+    var scrim = document.createElement("div");
+    scrim.className = "scrim" + (opts.center ? " center" : "");
+    scrim.innerHTML = '<div class="' + (opts.center ? "modal" : "drawer") + '">' + contentHtml + '</div>';
+    scrim.addEventListener("mousedown", function (e) { if (e.target === scrim) closeScrim(); });
+    root.appendChild(scrim);
+    document.addEventListener("keydown", escListener);
+    return scrim;
+  }
+  function escListener(e) { if (e.key === "Escape") closeScrim(); }
+  function closeScrim() {
+    var root = document.getElementById("modalRoot");
+    root.innerHTML = "";
+    document.removeEventListener("keydown", escListener);
+  }
+
+  // ---------- add plant ----------
+  function openAddModal() {
+    var relTags = REL_SEED.slice();
+    state.plants.forEach(function (p) { (p.relationshipTags || []).forEach(function (t) { if (relTags.indexOf(t) === -1) relTags.push(t); }); });
+    var locTags = LOC_SEED.slice();
+    state.plants.forEach(function (p) { if (p.location && locTags.indexOf(p.location) === -1) locTags.push(p.location); });
+
+    var html =
+      '<button class="modal-close" data-close>✕</button>' +
+      '<h2 style="font-style:italic;margin-bottom:1rem;">Plant someone new</h2>' +
+      '<div class="field"><label for="f-name">Name</label><input type="text" id="f-name" placeholder="Optional"></div>' +
+      '<div class="field"><label>Relationship tags</label><div class="chip-row" id="relChips"></div></div>' +
+      '<div class="field"><label>Location</label><div class="chip-row" id="locChips"></div></div>' +
+      '<div class="field"><label>Friendship level (closer = blooms more, wilts faster)</label>' +
+        '<div class="level-row" id="levelRow"></div></div>' +
+      '<div class="field"><label for="f-contact">Contact info</label><input type="text" id="f-contact" placeholder="Phone, email… optional"></div>' +
+      '<button class="primary-btn" id="saveAdd">Plant it</button>';
+
+    var scrim = openScrim(html, { center: true });
+    var chosenRel = [];
+    var chosenLoc = null;
+    var chosenLevel = 3;
+
+    renderChipRow(scrim.querySelector("#relChips"), relTags, chosenRel, "multi", function (arr) { chosenRel = arr; });
+    renderChipRow(scrim.querySelector("#locChips"), locTags, chosenLoc ? [chosenLoc] : [], "single", function (arr) { chosenLoc = arr[0] || null; });
+
+    var levelRow = scrim.querySelector("#levelRow");
+    levelRow.innerHTML = [1,2,3,4,5].map(function (l) {
+      return '<button type="button" class="level-btn' + (l === chosenLevel ? " on" : "") + '" data-l="' + l + '">' + l + '</button>';
+    }).join("");
+    Array.prototype.forEach.call(levelRow.querySelectorAll(".level-btn"), function (btn) {
+      btn.addEventListener("click", function () {
+        chosenLevel = parseInt(btn.getAttribute("data-l"), 10);
+        Array.prototype.forEach.call(levelRow.querySelectorAll(".level-btn"), function (b) { b.classList.toggle("on", b === btn); });
+      });
+    });
+
+    scrim.querySelector("[data-close]").addEventListener("click", closeScrim);
+    scrim.querySelector("#saveAdd").addEventListener("click", function () {
+      var name = scrim.querySelector("#f-name").value.trim();
+      var contact = scrim.querySelector("#f-contact").value.trim();
+      var now = nowISO();
+      var doc = {
+        name: name,
+        relationshipTags: chosenRel,
+        location: chosenLoc,
+        level: chosenLevel,
+        contactInfo: contact || null,
+        createdAt: now,
+        lastContactDate: now,
+        conversations: []
+      };
+      addPlant(doc);
+      closeScrim();
+    });
+  }
+
+  function renderChipRow(container, allOptions, initiallyChosen, mode, onChange) {
+    var chosen = initiallyChosen.slice();
+    function draw() {
+      container.innerHTML = allOptions.map(function (opt) {
+        return '<button type="button" class="chip-toggle' + (chosen.indexOf(opt) !== -1 ? " on" : "") + '" data-opt="' + escapeHtml(opt) + '">' + escapeHtml(opt) + '</button>';
+      }).join("") + '<input type="text" class="chip-add-input" placeholder="+ new">';
+      Array.prototype.forEach.call(container.querySelectorAll(".chip-toggle"), function (btn) {
+        btn.addEventListener("click", function () {
+          var opt = btn.getAttribute("data-opt");
+          if (mode === "single") {
+            chosen = chosen.indexOf(opt) !== -1 ? [] : [opt];
+          } else {
+            var idx = chosen.indexOf(opt);
+            if (idx === -1) chosen.push(opt); else chosen.splice(idx, 1);
+          }
+          onChange(chosen);
+          draw();
+        });
+      });
+      var addInput = container.querySelector(".chip-add-input");
+      addInput.addEventListener("keydown", function (e) {
+        if (e.key === "Enter") {
+          e.preventDefault();
+          var v = addInput.value.trim();
+          if (!v) return;
+          if (allOptions.indexOf(v) === -1) allOptions.push(v);
+          chosen = mode === "single" ? [v] : chosen.concat(chosen.indexOf(v) === -1 ? [v] : []);
+          onChange(chosen);
+          draw();
+        }
+      });
+    }
+    draw();
+  }
+
+  // ---------- detail drawer ----------
+  function openDetail(id) {
+    var plant = state.plants.find(function (p) { return p.id === id; });
+    if (!plant) return;
+    renderDetail(plant);
+  }
+
+  function renderDetail(plant) {
+    var pct = healthOf(plant);
+    var st = healthState(pct);
+    var color = { thriving: "#3f7d4a", healthy: "#6fa050", wilting: "#c98a3f", dying: "#c9683f", dead: "#8a7a68" }[st];
+    var idealDays = IDEAL_DAYS[plant.level] || IDEAL_DAYS[3];
+    var overdue = daysSince(plant.lastContactDate || plant.createdAt) > idealDays;
+
+    var convos = (plant.conversations || []).slice().sort(function (a, b) { return new Date(b.date) - new Date(a.date); });
+    var convoHtml = convos.length ? convos.map(function (c) {
+      return '<div class="convo-item">' +
+        '<div class="convo-top"><span><span class="convo-badge">' + escapeHtml(c.method || "—") + '</span>' +
+        '<span class="convo-badge" style="background:var(--soil)">' + escapeHtml(c.setting || "—") + '</span></span>' +
+        '<span class="mono">' + escapeHtml(fmtDate(c.date)) + (c.durationMinutes ? " · " + c.durationMinutes + "m" : "") + '</span></div>' +
+        (c.topic ? '<div class="convo-topic">' + escapeHtml(c.topic) + '</div>' : '') +
+        '</div>';
+    }).join("") : '<p class="stat-line">No conversations logged yet.</p>';
+
+    var tags = primaryTags(plant);
+    var html =
+      '<button class="drawer-close" data-close>✕</button>' +
+      '<div class="detail-header">' +
+        '<div class="plant-' + st + '" style="' + plantStyle(plant.level, st) + '">' + plantSVG(plant.level, tags.rel, tags.loc) + '</div>' +
+        '<div><h2>' + escapeHtml(plant.name || "Unnamed") + '</h2>' +
+        '<div class="stat-line">' + LEVEL_NAME[plant.level] + ' · Level ' + plant.level + '</div>' +
+        (plantTagLine(plant) ? '<div class="stat-line">' + escapeHtml(plantTagLine(plant)) + '</div>' : '') + '</div>' +
+      '</div>' +
+      '<div class="health-bar-wrap"><div class="health-bar-fill" style="width:' + pct + '%;background:' + color + '"></div></div>' +
+      '<div class="stat-line mono">' + Math.round(pct) + '% healthy · last talked ' + escapeHtml(fmtDaysAgo(plant.lastContactDate || plant.createdAt)) +
+        (overdue ? ' · <span style="color:' + color + '">overdue to reach out</span>' : '') + '</div>' +
+      (plant.contactInfo ? '<div class="stat-line" style="margin-top:0.3rem;">' + escapeHtml(plant.contactInfo) + '</div>' : '') +
+      '<button class="primary-btn" id="logBtn">Log a conversation</button>' +
+      '<div class="btn-row"><button class="secondary-btn" id="editBtn">Edit</button><button class="danger-btn" id="delBtn">Delete</button></div>' +
+      '<div class="section-title">Conversation history</div>' +
+      '<div class="convo-list">' + convoHtml + '</div>';
+
+    var scrim = openScrim(html, { center: false });
+    scrim.querySelector("[data-close]").addEventListener("click", closeScrim);
+    scrim.querySelector("#logBtn").addEventListener("click", function () { openLogModal(plant); });
+    scrim.querySelector("#editBtn").addEventListener("click", function () { openEditModal(plant); });
+    scrim.querySelector("#delBtn").addEventListener("click", function () { openDeleteConfirm(plant); });
+  }
+
+  // Returns to the detail drawer showing `plant` as-is — pass the freshly
+  // merged object on a save (don't wait on the db round-trip/snapshot to
+  // reflect what the user just entered).
+  function backToDetail(plant) {
+    closeScrim();
+    renderDetail(plant);
+  }
+
+  function openLogModal(plant) {
+    closeScrim();
+    // Local date, not UTC: in the evening (Pacific) UTC is already tomorrow,
+    // which used to stamp tonight's calls as the next day.
+    var nowD = new Date();
+    var todayStr = nowD.getFullYear() + "-" + String(nowD.getMonth() + 1).padStart(2, "0") + "-" + String(nowD.getDate()).padStart(2, "0");
+    var html =
+      '<button class="modal-close" data-close>✕</button>' +
+      '<h2 style="font-style:italic;margin-bottom:1rem;">Log time with ' + escapeHtml(plant.name || "them") + '</h2>' +
+      '<div class="field"><label for="c-date">Date</label><input type="date" id="c-date" value="' + todayStr + '"></div>' +
+      '<div class="field"><label>How</label><div class="chip-row" id="methodChips"></div></div>' +
+      '<div class="field"><label>Setting</label><div class="chip-row" id="settingChips"></div></div>' +
+      '<div class="field"><label for="c-dur">Duration (minutes)</label><input type="number" id="c-dur" placeholder="Optional" min="0"></div>' +
+      '<div class="field"><label for="c-topic">What did you talk about?</label><textarea id="c-topic" placeholder="Optional"></textarea></div>' +
+      '<button class="primary-btn" id="saveLog">Water the plant</button>';
+
+    var scrim = openScrim(html, { center: true });
+    var method = null, setting = null;
+    renderChipRow(scrim.querySelector("#methodChips"), METHODS.slice(), [], "single", function (a) { method = a[0] || null; });
+    renderChipRow(scrim.querySelector("#settingChips"), SETTINGS.slice(), [], "single", function (a) { setting = a[0] || null; });
+
+    scrim.querySelector("[data-close]").addEventListener("click", function () { backToDetail(plant); });
+    scrim.querySelector("#saveLog").addEventListener("click", function () {
+      var dateVal = scrim.querySelector("#c-date").value;
+      var durVal = scrim.querySelector("#c-dur").value;
+      var topicVal = scrim.querySelector("#c-topic").value.trim();
+      // Today keeps the real time; a backdated day is stamped at local noon.
+      var isoDate = !dateVal || dateVal === todayStr ? nowISO() : new Date(dateVal + "T12:00:00").toISOString();
+      var convo = {
+        id: uid(),
+        date: isoDate,
+        topic: topicVal || null,
+        durationMinutes: durVal ? Number(durVal) : null,
+        method: method,
+        setting: setting
+      };
+      var newConvos = (plant.conversations || []).concat([convo]);
+      var newLast = isoDate;
+      // keep the most recent contact date, in case a past conversation is backlogged
+      if (plant.lastContactDate && new Date(plant.lastContactDate) > new Date(isoDate)) {
+        newLast = plant.lastContactDate;
+      }
+      var patch = { conversations: newConvos, lastContactDate: newLast };
+      var modalEl = scrim.querySelector(".modal");
+      var reducedMotion = window.matchMedia && window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+      if (modalEl) modalEl.innerHTML = wateringSceneHtml(plant);
+      setTimeout(function () {
+        addConversation(plant.id, convo, patch);
+        backToDetail(Object.assign({}, plant, patch));
+      }, reducedMotion ? 0 : 1150);
+    });
+  }
+
+  function openEditModal(plant) {
+    closeScrim();
+    var relTags = REL_SEED.slice();
+    state.plants.forEach(function (p) { (p.relationshipTags || []).forEach(function (t) { if (relTags.indexOf(t) === -1) relTags.push(t); }); });
+    var locTags = LOC_SEED.slice();
+    state.plants.forEach(function (p) { if (p.location && locTags.indexOf(p.location) === -1) locTags.push(p.location); });
+
+    var html =
+      '<button class="modal-close" data-close>✕</button>' +
+      '<h2 style="font-style:italic;margin-bottom:1rem;">Edit plant</h2>' +
+      '<div class="field"><label for="e-name">Name</label><input type="text" id="e-name" value="' + escapeHtml(plant.name || "") + '"></div>' +
+      '<div class="field"><label>Relationship tags</label><div class="chip-row" id="relChips"></div></div>' +
+      '<div class="field"><label>Location</label><div class="chip-row" id="locChips"></div></div>' +
+      '<div class="field"><label>Friendship level</label><div class="level-row" id="levelRow"></div></div>' +
+      '<div class="field"><label for="e-contact">Contact info</label><input type="text" id="e-contact" value="' + escapeHtml(plant.contactInfo || "") + '"></div>' +
+      '<button class="primary-btn" id="saveEdit">Save changes</button>';
+
+    var scrim = openScrim(html, { center: true });
+    var chosenRel = (plant.relationshipTags || []).slice();
+    var chosenLoc = plant.location || null;
+    var chosenLevel = plant.level || 3;
+
+    renderChipRow(scrim.querySelector("#relChips"), relTags, chosenRel, "multi", function (arr) { chosenRel = arr; });
+    renderChipRow(scrim.querySelector("#locChips"), locTags, chosenLoc ? [chosenLoc] : [], "single", function (arr) { chosenLoc = arr[0] || null; });
+
+    var levelRow = scrim.querySelector("#levelRow");
+    levelRow.innerHTML = [1,2,3,4,5].map(function (l) {
+      return '<button type="button" class="level-btn' + (l === chosenLevel ? " on" : "") + '" data-l="' + l + '">' + l + '</button>';
+    }).join("");
+    Array.prototype.forEach.call(levelRow.querySelectorAll(".level-btn"), function (btn) {
+      btn.addEventListener("click", function () {
+        chosenLevel = parseInt(btn.getAttribute("data-l"), 10);
+        Array.prototype.forEach.call(levelRow.querySelectorAll(".level-btn"), function (b) { b.classList.toggle("on", b === btn); });
+      });
+    });
+
+    scrim.querySelector("[data-close]").addEventListener("click", function () { backToDetail(plant); });
+    scrim.querySelector("#saveEdit").addEventListener("click", function () {
+      var patch = {
+        name: scrim.querySelector("#e-name").value.trim(),
+        relationshipTags: chosenRel,
+        location: chosenLoc,
+        level: chosenLevel,
+        contactInfo: scrim.querySelector("#e-contact").value.trim() || null
+      };
+      updatePlant(plant.id, patch);
+      backToDetail(Object.assign({}, plant, patch));
+    });
+  }
+
+  function openDeleteConfirm(plant) {
+    closeScrim();
+    var html =
+      '<h2 style="font-style:italic;margin-bottom:0.6rem;">Remove ' + escapeHtml(plant.name || "this plant") + '?</h2>' +
+      '<p class="stat-line">This deletes their profile and conversation history. This can\'t be undone.</p>' +
+      '<div class="btn-row"><button class="secondary-btn" id="cancelDel">Cancel</button><button class="danger-btn" id="confirmDel">Delete</button></div>';
+    var scrim = openScrim(html, { center: true });
+    scrim.querySelector("#cancelDel").addEventListener("click", function () { backToDetail(plant); });
+    scrim.querySelector("#confirmDel").addEventListener("click", function () {
+      deletePlant(plant.id);
+      closeScrim();
+    });
+  }
+
+  // ---------- persistence ----------
+  // Changes apply to the screen right away, then go to the server. A failed
+  // write shows a note and re-pulls the server copy so the screen never lies.
+  function setSyncNote(msg, withReload) {
+    var el = document.getElementById("syncNote");
+    if (!msg) { el.hidden = true; el.textContent = ""; return; }
+    el.hidden = false;
+    el.innerHTML = escapeHtml(msg) + (withReload ? ' <button class="sync-reload" type="button">Reload</button>' : "");
+    var b = el.querySelector(".sync-reload");
+    if (b) b.addEventListener("click", function () { location.reload(); });
+  }
+  function api(method, path, body) {
+    return fetch(path, {
+      method: method,
+      headers: body ? { "Content-Type": "application/json" } : {},
+      body: body ? JSON.stringify(body) : undefined,
+      credentials: "same-origin"
+    }).then(function (res) {
+      if (res.status === 401) {
+        var err = new Error("signed-out"); err.signedOut = true; throw err;
+      }
+      if (!res.ok) throw new Error("HTTP " + res.status);
+      return res.status === 204 ? null : res.json();
+    });
+  }
+  function writeFailed(e) {
+    console.error("write failed", e);
+    if (e && e.signedOut) { showGate("Signed out — that last change didn't save."); return; }
+    setSyncNote("Couldn't save that change. Check your connection.", true);
+    refresh();
+  }
+  function refresh() {
+    return api("GET", "/api/plants").then(function (plants) {
+      state.plants = plants;
+      saveLocal();
+      setSyncNote(null);
+      render();
+    }).catch(function (e) {
+      console.error("load failed", e);
+      if (e && e.signedOut) showGate("");
+      else setSyncNote("Offline — showing your last saved garden.", false);
+    });
+  }
+
+  // ---------- passcode gate ----------
+  // Signed out means this device shows nothing: the cached copy is wiped too.
+  function showGate(msg) {
+    closeScrim();
+    state.plants = [];
+    try { localStorage.removeItem(LOCAL_KEY); } catch (e) {}
+    render();
+    document.getElementById("gateMsg").textContent = msg || "";
+    document.getElementById("gate").hidden = false;
+    document.getElementById("gatePass").focus();
+  }
+  document.getElementById("gateForm").addEventListener("submit", function (e) {
+    e.preventDefault();
+    var btn = document.getElementById("gateBtn");
+    var pass = document.getElementById("gatePass");
+    var msg = document.getElementById("gateMsg");
+    btn.disabled = true;
+    msg.textContent = "";
+    fetch("/api/login", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ passcode: pass.value }),
+      credentials: "same-origin"
+    }).then(function (res) {
+      if (res.ok) {
+        pass.value = "";
+        document.getElementById("gate").hidden = true;
+        return refresh();
+      }
+      return res.json().catch(function () { return {}; }).then(function (b) {
+        msg.textContent = b.message || "Couldn't sign in. Try again.";
+        pass.select();
+      });
+    }).catch(function () {
+      msg.textContent = "No connection. Try again when you're online.";
+    }).then(function () { btn.disabled = false; });
+  });
+  // ---------- iPhone call shortcut setup ----------
+  // Makes the key the Shortcut uses. The key is shown once, here, so it
+  // goes straight from this screen into the Shortcut and nowhere else.
+  function copyRow(label, value, id) {
+    return '<div class="field"><label for="' + id + '">' + label + '</label>' +
+      '<div class="copy-row"><input type="text" id="' + id + '" readonly value="' + escapeHtml(value) + '">' +
+      '<button type="button" class="secondary-btn copy-btn" data-copy="' + id + '">Copy</button></div></div>';
+  }
+  function wireCopy(scrim) {
+    Array.prototype.forEach.call(scrim.querySelectorAll(".copy-btn"), function (btn) {
+      btn.addEventListener("click", function () {
+        var input = scrim.querySelector("#" + btn.getAttribute("data-copy"));
+        input.select();
+        var done = function () { btn.textContent = "Copied"; setTimeout(function () { btn.textContent = "Copy"; }, 1500); };
+        if (navigator.clipboard) navigator.clipboard.writeText(input.value).then(done, function () { document.execCommand("copy"); done(); });
+        else { document.execCommand("copy"); done(); }
+      });
+    });
+  }
+  function openShortcutModal() {
+    var base = location.origin;
+    var html =
+      '<button class="modal-close" data-close>✕</button>' +
+      '<h2 style="font-style:italic;margin-bottom:0.6rem;">Call shortcut</h2>' +
+      '<p class="stat-line">After a call, run the Shortcut, tap who you talked to, and their plant gets watered. Paste these into the Shortcut as you build it.</p>' +
+      copyRow("People address", base + "/api/shortcut/people", "sc-people") +
+      copyRow("Log address", base + "/api/shortcut/log", "sc-log") +
+      '<div class="section-title">Key</div>' +
+      '<p class="stat-line" id="sc-status">Checking…</p>' +
+      '<div id="sc-key"></div>' +
+      '<button class="primary-btn" id="sc-make">Make a key</button>';
+    var scrim = openScrim(html, { center: true });
+    scrim.querySelector("[data-close]").addEventListener("click", closeScrim);
+    wireCopy(scrim);
+    var status = scrim.querySelector("#sc-status");
+    var make = scrim.querySelector("#sc-make");
+    api("GET", "/api/shortcut-key").then(function (r) {
+      if (r.madeAt) {
+        status.textContent = "A key exists, made " + fmtDate(r.madeAt) + ". Making a new one turns the old one off.";
+        make.textContent = "Make a new key";
+      } else {
+        status.textContent = "No key yet.";
+      }
+    }).catch(function (e) { if (e && e.signedOut) showGate(""); else status.textContent = "Couldn't check. Are you online?"; });
+    make.addEventListener("click", function () {
+      if (make.textContent === "Make a new key" && !confirm("Turn off the old key? The Shortcut will stop working until you paste the new one.")) return;
+      make.disabled = true;
+      api("POST", "/api/shortcut-key").then(function (r) {
+        scrim.querySelector("#sc-key").innerHTML =
+          copyRow("Shortcut key — shown once", "Bearer " + r.key, "sc-keyval") +
+          '<p class="stat-line">Copy it into the Shortcut now. Once you close this, it can\'t be shown again.</p>';
+        wireCopy(scrim.querySelector("#sc-key"));
+        status.textContent = "New key made " + fmtDate(r.madeAt) + ".";
+        make.hidden = true;
+      }).catch(function (e) {
+        make.disabled = false;
+        if (e && e.signedOut) showGate(""); else status.textContent = "Couldn't make a key. Try again.";
+      });
+    });
+  }
+  document.getElementById("shortcutBtn").addEventListener("click", openShortcutModal);
+
+  document.getElementById("signOutBtn").addEventListener("click", function () {
+    fetch("/api/logout", { method: "POST", credentials: "same-origin" })
+      .catch(function () {})
+      .then(function () { showGate(""); });
+  });
+
+  function addPlant(doc) {
+    doc.id = uid();
+    state.plants.push(doc);
+    saveLocal();
+    render();
+    api("POST", "/api/plants", doc).catch(writeFailed);
+  }
+  function updatePlant(id, patch) {
+    var p = state.plants.find(function (pl) { return pl.id === id; });
+    if (p) Object.assign(p, patch);
+    saveLocal();
+    render();
+    api("PATCH", "/api/plants/" + encodeURIComponent(id), patch).catch(writeFailed);
+  }
+  // The server appends the conversation itself, then we re-pull, so a call
+  // the iPhone Shortcut logged in the meantime is never overwritten.
+  function addConversation(id, convo, localPatch) {
+    var p = state.plants.find(function (pl) { return pl.id === id; });
+    if (p) Object.assign(p, localPatch);
+    saveLocal();
+    render();
+    api("POST", "/api/plants/" + encodeURIComponent(id) + "/conversations", convo)
+      .then(refresh)
+      .catch(writeFailed);
+  }
+  function deletePlant(id) {
+    state.plants = state.plants.filter(function (p) { return p.id !== id; });
+    saveLocal();
+    render();
+    api("DELETE", "/api/plants/" + encodeURIComponent(id)).catch(writeFailed);
+  }
+
+  // ---------- health decay re-render timer ----------
+  setInterval(render, 60000);
+
+  // ---------- wiring ----------
+  document.getElementById("modeToggle").addEventListener("click", function (e) {
+    var btn = e.target.closest("button[data-mode]");
+    if (!btn) return;
+    state.mode = btn.getAttribute("data-mode");
+    state.activeTab = currentSeed()[0];
+    Array.prototype.forEach.call(document.querySelectorAll("#modeToggle button"), function (b) {
+      b.classList.toggle("active", b === btn);
+    });
+    render();
+  });
+  document.getElementById("searchInput").addEventListener("input", function (e) {
+    state.search = e.target.value;
+    render();
+  });
+  document.getElementById("openAddBtn").addEventListener("click", openAddModal);
+
+  // ---------- boot ----------
+  // Paint the last copy this device saw instantly, then pull the server's.
+  // Re-pull whenever the app comes back to the foreground, so a plant
+  // watered on the laptop shows up on the phone without a manual reload.
+  state.plants = loadLocal();
+  render();
+  refresh();
+  document.addEventListener("visibilitychange", function () {
+    if (document.visibilityState === "visible") refresh();
+  });
+})();
+</script>
+
+</body></html>
